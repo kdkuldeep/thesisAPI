@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
 const knex = require('knex');
+const bodyParser = require('body-parser');
+
+const auth = require('./controllers/auth');
 
 dotenv.config();
 
@@ -20,16 +22,13 @@ db.select('*').from('users').then(data => {
   console.log(data);
 });
 
-
 const app = express();
 
 app.use(cors());
 app.options('*', cors());
+app.use(bodyParser.json());
 
-app.post('/auth', (req, res) => {
-  res.status(400)
-  .json({ errors: { global: "invalid Credentials"}});
-});
+app.post('/auth', auth.handleSignin(db));
 
 app.listen(5000, () => {
   console.log('Server listening on port 5000');
