@@ -26,11 +26,7 @@ const app = express();
 app.use(cors());
 app.options('*', cors());
 
-app.get('/api/auth', (req, res) => {
-  res.json({msg: 'PASSED!!'});
-})
-
-app.post('/api/auth', (req, res) => {
+app.post('/auth', (req, res) => {
   res.status(400)
   .json({ errors: { global: "invalid Credentials"}});
 });
