@@ -32,7 +32,7 @@ Request body:
 }
 ```
 
-Returns: ...
+Response: [User](#users)
 
 
 ### Customer Registration:
