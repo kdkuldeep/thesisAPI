@@ -1,19 +1,23 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const generateJWT = (email) => {
+const generateJWT = (email, username, role ) => {
   return jwt.sign(
     {
-      email
+      email,
+      username,
+      role
     },
     process.env.JWT_SECRET
   );
 }
 
-const toAuthJSON = ({ email }) => {
+const toAuthJSON = ({ email, username, role }) => {
   return {
     email,
-    token: generateJWT(email)
+    token: generateJWT(email, username, role),
+    username,
+    role
   };
 }
 
@@ -34,11 +38,11 @@ const handleSignin = (db) => (req,res) => {
       }
       else {
         // error for invalid password
-        res.status(400).json({ errors: { global: "invalid Credentials 1"}});
+        res.status(400).json({ errors: { global: "invalid Credentials (invalid password)"}});
       }
     })
     // error for invalid email
-    .catch(err => res.status(400).json({ errors: { global: "invalid Credentials 2"}}))
+    .catch(err => res.status(400).json({ errors: { global: "invalid Credentials (email does not exist)"}}))
 }
 
 module.exports = {
