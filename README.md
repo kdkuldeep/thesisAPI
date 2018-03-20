@@ -42,19 +42,16 @@ Response: [User](#users)
 Request body:
 ```JSON
 {
-  "user": {
+  "data": {
     "email": "",
     "username": "",
     "password": "",
     "firstName": "",
     "lastName": "",
     "country": "",
-    "town": "",
-    "address": {
-      "street": "",
-      "number": "",
-    }
-
+    "city": "",
+    "streetName": "",
+    "streetNumber": "",
   }
 }
 ```
@@ -69,22 +66,17 @@ Response: [User](#users)
 Request body:
 ```JSON
 {
-  "user": {
+  "data": {
     "email": "",
     "username": "",
     "password": "",
     "firstName": "",
     "lastName": "",
-    "company": {
-      "VAT": "",
-      "name": "",
-      "country": "",
-      "town": "",
-      "address": {
-        "street": "",
-        "number": "",
-      }
-    }
+    "companyName": "",
+    "country": "",
+    "city": "",
+    "streetName": "",
+    "streetNumber": "",
   }
 }
 ```

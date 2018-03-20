@@ -5,6 +5,8 @@ const knex = require('knex');
 const bodyParser = require('body-parser');
 
 const auth = require('./controllers/auth');
+const manager = require('./controllers/manager');
+const customer = require('./controllers/customer');
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.options('*', cors());
 app.use(bodyParser.json());
 
 app.post('/auth', auth.handleSignin(db));
+app.post('/register/customer', customer.handleRegister(db));
+app.post('/register/manager', manager.handleRegister(db));
 
 app.listen(5000, () => {
   console.log('Server listening on port 5000');
