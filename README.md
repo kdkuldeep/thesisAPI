@@ -46,12 +46,12 @@ Request body:
     "email": "",
     "username": "",
     "password": "",
-    "firstName": "",
-    "lastName": "",
+    "first_name": "",
+    "last_name": "",
     "country": "",
     "city": "",
-    "streetName": "",
-    "streetNumber": "",
+    "street": "",
+    "number": "",
   }
 }
 ```
@@ -70,13 +70,13 @@ Request body:
     "email": "",
     "username": "",
     "password": "",
-    "firstName": "",
-    "lastName": "",
-    "companyName": "",
+    "first_name": "",
+    "last_name": "",
+    "company_name": "",
     "country": "",
     "city": "",
-    "streetName": "",
-    "streetNumber": "",
+    "street": "",
+    "number": "",
   }
 }
 ```

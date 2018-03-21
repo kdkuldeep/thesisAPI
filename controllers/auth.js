@@ -1,4 +1,3 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const generateJWT = (email, username, role ) => {
@@ -10,7 +9,7 @@ const generateJWT = (email, username, role ) => {
     },
     process.env.JWT_SECRET
   );
-}
+};
 
 const toAuthJSON = ({ email, username, role }) => {
   return {
@@ -19,10 +18,10 @@ const toAuthJSON = ({ email, username, role }) => {
     username,
     role
   };
-}
+};
 
 
-const handleSignin = (db) => (req,res) => {
+const handleSignin = (db, bcrypt) => (req,res) => {
   const { email, password } = req.body.credentials;
   
   // TODO: add more checks
@@ -43,8 +42,9 @@ const handleSignin = (db) => (req,res) => {
     })
     // error for invalid email
     .catch(err => res.status(400).json({ errors: { global: "invalid Credentials (email does not exist)"}}))
-}
+};
 
 module.exports = {
   handleSignin,
-}
+  toAuthJSON
+};

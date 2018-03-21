@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const knex = require('knex');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
 
 const auth = require('./controllers/auth');
 const manager = require('./controllers/manager');
@@ -20,9 +21,9 @@ const db = knex({
   }
 });
 
-db.select('*').from('users').then(data => {
-  console.log(data);
-});
+// db.select('*').from('users').then(data => {
+//   console.log(data);
+// });
 
 const app = express();
 
@@ -30,9 +31,9 @@ app.use(cors());
 app.options('*', cors());
 app.use(bodyParser.json());
 
-app.post('/auth', auth.handleSignin(db));
-app.post('/register/customer', customer.handleRegister(db));
-app.post('/register/manager', manager.handleRegister(db));
+app.post('/auth', auth.handleSignin(db, bcrypt));
+app.post('/register/customer', customer.handleRegister(db, bcrypt));
+app.post('/register/manager', manager.handleRegister(db, bcrypt));
 
 app.listen(5000, () => {
   console.log('Server listening on port 5000');
