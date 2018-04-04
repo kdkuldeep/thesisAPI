@@ -1,6 +1,6 @@
 const auth = require("./auth");
 
-const handleRegister = (db, bcrypt) => (req, res) => {
+const register = (db, bcrypt) => (req, res) => {
   const {
     email,
     username,
@@ -70,6 +70,44 @@ const handleRegister = (db, bcrypt) => (req, res) => {
     );
 };
 
+const addProduct = db => (req, res) => {
+  const { name, price, type } = req.body.data;
+  const { email } = req.user;
+
+  // TODO: add more checks
+  if (!name || !price) {
+    return res.status(400).json("incorrect form submission");
+  }
+
+  db
+    .select("company_id")
+    .from("managers")
+    .where({ email })
+    .first()
+    .then(data => {
+      const { company_id } = data;
+      db
+        .insert({ company_id, name, price, type })
+        .into("products")
+        .then(() => res.json({ name, price, type }))
+        .catch(err => {
+          res.status(400).json({
+            errors: {
+              global: "You already have a product with the same name"
+            }
+          });
+        });
+    })
+    .catch(err => {
+      res.status(400).json({
+        errors: {
+          global: "something went wrong when (SELECT company_id WHERE email)"
+        }
+      });
+    });
+};
+
 module.exports = {
-  handleRegister
+  register,
+  addProduct
 };

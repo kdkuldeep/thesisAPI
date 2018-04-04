@@ -77,6 +77,7 @@ const authenticate = (req, res, next) => {
           role: decoded.role,
           username: decoded.username
         };
+        console.log("user authenticated");
         next();
       }
     });
@@ -91,6 +92,7 @@ const authenticate = (req, res, next) => {
 
 const checkAuthorization = authorizedRoles => (req, res, next) => {
   if (authorizedRoles.includes(req.user.role)) {
+    console.log(`user authorized as ${req.user.role}`);
     next();
   } else {
     res.status(403).json({
@@ -104,5 +106,6 @@ const checkAuthorization = authorizedRoles => (req, res, next) => {
 module.exports = {
   handleSignin,
   toAuthJSON,
-  authenticate
+  authenticate,
+  checkAuthorization
 };
