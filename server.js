@@ -32,20 +32,40 @@ app.use(cors());
 app.options("*", cors());
 app.use(bodyParser.json());
 
+// Endpoints
+
 app.post("/auth", auth.handleSignin(db, bcrypt));
+
 app.post("/register/customer", customer.register(db, bcrypt));
+
 app.post("/register/manager", manager.register(db, bcrypt));
+
+app.get(
+  "/products",
+  auth.authenticate,
+  auth.checkAuthorization(["manager", "customer"]),
+  products.fetch(db)
+);
+
 app.post(
   "/products",
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
   manager.addProduct(db)
 );
-app.get(
+
+app.put(
   "/products",
   auth.authenticate,
-  auth.checkAuthorization(["manager", "customer"]),
-  products.fetch(db)
+  auth.checkAuthorization(["manager"]),
+  manager.editProduct(db)
+);
+
+app.delete(
+  "/products",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  manager.editProduct(db)
 );
 
 app.listen(5000, () => {

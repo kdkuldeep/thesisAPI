@@ -10,7 +10,7 @@ const fetch = db => (req, res) => {
         .then(data => {
           const { company_id } = data;
           db
-            .select("name", "price", "type")
+            .select("product_id", "name", "price", "type")
             .from("products")
             .where({ company_id })
             .then(data => res.json({ products: data }));

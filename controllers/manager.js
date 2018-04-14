@@ -89,8 +89,11 @@ const addProduct = db => (req, res) => {
       db
         .insert({ company_id, name, price, type })
         .into("products")
-        .then(() => res.json({ name, price, type }))
+        .returning("product_id")
+        .then(ids => res.json({ product_id: ids[0], name, price, type }))
         .catch(err => {
+          console.log(err);
+
           res.status(400).json({
             errors: {
               global: "You already have a product with the same name"
@@ -107,7 +110,60 @@ const addProduct = db => (req, res) => {
     });
 };
 
+const editProduct = db => (req, res) => {
+  const { product_id, name, price, type } = req.body.data;
+  const { email } = req.user;
+
+  db
+    .select("company_id")
+    .from("managers")
+    .where({ email })
+    .first()
+    .then(managerData => {
+      const managerCompanyId = managerData.company_id;
+
+      db
+        .select("company_id")
+        .from("products")
+        .where({ product_id })
+        .first()
+        .then(productData => {
+          const productCompanyId = productData.company_id;
+          if (managerCompanyId === productCompanyId) {
+            db("products")
+              .where({ product_id })
+              .update({ name, price, type })
+              .then(() => res.json({ product_id, name, price, type }))
+              .catch(err => {
+                res.status(500).json({
+                  errors: {
+                    global: "You already have a product with the same name"
+                  }
+                });
+              });
+          } else {
+            res.status(401).json({
+              errors: {
+                global: "unauthorized access"
+              }
+            });
+          }
+        })
+        .catch(err => {
+          res.status(500).json({
+            errors: {
+              global: "something went wrong when updating"
+            }
+          });
+        });
+    });
+};
+
+const deleteProduct = db => (req, res) => {};
+
 module.exports = {
   register,
-  addProduct
+  addProduct,
+  editProduct,
+  deleteProduct
 };
