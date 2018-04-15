@@ -62,10 +62,10 @@ app.put(
 );
 
 app.delete(
-  "/products",
+  "/products/:id",
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
-  manager.editProduct(db)
+  manager.deleteProduct(db)
 );
 
 app.listen(5000, () => {

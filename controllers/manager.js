@@ -159,7 +159,55 @@ const editProduct = db => (req, res) => {
     });
 };
 
-const deleteProduct = db => (req, res) => {};
+const deleteProduct = db => (req, res) => {
+  const product_id = req.params.id;
+
+  const { email } = req.user;
+
+  db
+    .select("company_id")
+    .from("managers")
+    .where({ email })
+    .first()
+    .then(managerData => {
+      const managerCompanyId = managerData.company_id;
+
+      db
+        .select("company_id")
+        .from("products")
+        .where({ product_id })
+        .first()
+        .then(productData => {
+          const productCompanyId = productData.company_id;
+          if (managerCompanyId === productCompanyId) {
+            db("products")
+              .where({ product_id })
+              .del()
+              .then(() => res.json({ product_id }))
+              .catch(err => {
+                res.status(500).json({
+                  errors: {
+                    global: "Something went wrong. No product exists"
+                  }
+                });
+              });
+          } else {
+            res.status(401).json({
+              errors: {
+                global: "unauthorized access"
+              }
+            });
+          }
+        })
+        .catch(err => {
+          res.status(500).json({
+            errors: {
+              global: "something went wrong when deleting"
+            }
+          });
+        });
+    });
+};
 
 module.exports = {
   register,
