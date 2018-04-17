@@ -1,20 +1,32 @@
 const jwt = require("jsonwebtoken");
 
-const generateJWT = (email, username, role) => {
-  return jwt.sign(
-    {
-      email,
-      username,
-      role
-    },
-    process.env.JWT_SECRET
-  );
+const generateJWT = (email, username, role, company_id) => {
+  if (company_id) {
+    return jwt.sign(
+      {
+        email,
+        username,
+        role,
+        company_id
+      },
+      process.env.JWT_SECRET
+    );
+  } else {
+    return jwt.sign(
+      {
+        email,
+        username,
+        role
+      },
+      process.env.JWT_SECRET
+    );
+  }
 };
 
-const toAuthJSON = ({ email, username, role }) => {
+const toAuthJSON = ({ email, username, role, company_id }) => {
   return {
     email,
-    token: generateJWT(email, username, role),
+    token: generateJWT(email, username, role, company_id),
     username,
     role
   };
@@ -36,7 +48,20 @@ const handleSignin = (db, bcrypt) => (req, res) => {
     .first()
     .then(data => {
       if (bcrypt.compareSync(password, data.password)) {
-        return res.json({ user: toAuthJSON(data) });
+        // if manager of driver pass company_id to encode in JWT
+        if (data.role === "manager" || data.role === "driver") {
+          db
+            .select("company_id")
+            .from(`${data.role}s`)
+            .where({ email })
+            .first()
+            .then(idData => {
+              data.company_id = idData.company_id;
+              return res.json({ user: toAuthJSON(data) });
+            });
+        } else {
+          return res.json({ user: toAuthJSON(data) });
+        }
       } else {
         // error for invalid password
         res.status(400).json({
@@ -77,6 +102,9 @@ const authenticate = (req, res, next) => {
           role: decoded.role,
           username: decoded.username
         };
+        if (req.user.role === "manager" || req.user.role === "driver") {
+          req.user.company_id = decoded.company_id;
+        }
         console.log("user authenticated");
         next();
       }
@@ -93,6 +121,7 @@ const authenticate = (req, res, next) => {
 const checkAuthorization = authorizedRoles => (req, res, next) => {
   if (authorizedRoles.includes(req.user.role)) {
     console.log(`user authorized as ${req.user.role}`);
+
     next();
   } else {
     res.status(403).json({

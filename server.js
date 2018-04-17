@@ -9,6 +9,7 @@ const auth = require("./controllers/auth");
 const manager = require("./controllers/manager");
 const customer = require("./controllers/customer");
 const products = require("./controllers/products");
+const vehicles = require("./controllers/vehicles");
 
 dotenv.config();
 
@@ -44,28 +45,56 @@ app.get(
   "/products",
   auth.authenticate,
   auth.checkAuthorization(["manager", "customer"]),
-  products.fetch(db)
+  products.fetchProducts(db)
 );
 
 app.post(
   "/products",
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
-  manager.addProduct(db)
+  products.addProduct(db)
 );
 
 app.put(
   "/products",
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
-  manager.editProduct(db)
+  products.editProduct(db)
 );
 
 app.delete(
   "/products/:id",
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
-  manager.deleteProduct(db)
+  products.deleteProduct(db)
+);
+
+app.get(
+  "/vehicles",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  vehicles.fetchVehicles(db)
+);
+
+app.post(
+  "/vehicles",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  vehicles.addVehicle(db)
+);
+
+app.put(
+  "/vehicles",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  vehicles.editVehicle(db)
+);
+
+app.delete(
+  "/vehicles/:id",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  vehicles.deleteVehicle(db)
 );
 
 app.listen(5000, () => {
