@@ -10,6 +10,7 @@ const manager = require("./controllers/manager");
 const customer = require("./controllers/customer");
 const products = require("./controllers/products");
 const vehicles = require("./controllers/vehicles");
+const drivers = require("./controllers/drivers");
 
 dotenv.config();
 
@@ -40,6 +41,13 @@ app.post("/auth", auth.handleSignin(db, bcrypt));
 app.post("/register/customer", customer.register(db, bcrypt));
 
 app.post("/register/manager", manager.register(db, bcrypt));
+
+app.post(
+  "/register/driver",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  manager.registerDriver(db, bcrypt)
+);
 
 app.get(
   "/products",
@@ -95,6 +103,27 @@ app.delete(
   auth.authenticate,
   auth.checkAuthorization(["manager"]),
   vehicles.deleteVehicle(db)
+);
+
+app.get(
+  "/drivers",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  drivers.fetchDrivers(db)
+);
+
+app.put(
+  "/drivers",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  drivers.editDriver(db)
+);
+
+app.delete(
+  "/drivers/:email",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  drivers.deleteDriver(db)
 );
 
 app.listen(5000, () => {

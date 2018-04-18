@@ -1,7 +1,7 @@
 const fetchProducts = db => (req, res) => {
   switch (req.user.role) {
     case "manager":
-      const { email, company_id } = req.user;
+      const { company_id } = req.user;
       db
         .select("product_id", "name", "price", "type")
         .from("products")
@@ -13,7 +13,7 @@ const fetchProducts = db => (req, res) => {
 
 const addProduct = db => (req, res) => {
   const { name, price, type } = req.body.data;
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
   // TODO: add more checks
   if (!name || !price) {
@@ -37,7 +37,7 @@ const addProduct = db => (req, res) => {
 
 const editProduct = db => (req, res) => {
   const { product_id, name, price, type } = req.body.data;
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
   db
     .select("company_id")
@@ -78,7 +78,7 @@ const editProduct = db => (req, res) => {
 const deleteProduct = db => (req, res) => {
   const product_id = req.params.id;
 
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
   db
     .select("company_id")

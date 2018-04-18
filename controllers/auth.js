@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+// if user is manager or driver, include company_id in JWT
 const generateJWT = (email, username, role, company_id) => {
   if (company_id) {
     return jwt.sign(
@@ -105,7 +106,7 @@ const authenticate = (req, res, next) => {
         if (req.user.role === "manager" || req.user.role === "driver") {
           req.user.company_id = decoded.company_id;
         }
-        console.log("user authenticated");
+        // console.log("user authenticated");
         next();
       }
     });
@@ -120,8 +121,7 @@ const authenticate = (req, res, next) => {
 
 const checkAuthorization = authorizedRoles => (req, res, next) => {
   if (authorizedRoles.includes(req.user.role)) {
-    console.log(`user authorized as ${req.user.role}`);
-
+    // console.log(`user authorized as ${req.user.role}`);
     next();
   } else {
     res.status(403).json({

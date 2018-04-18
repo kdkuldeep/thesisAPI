@@ -1,5 +1,5 @@
 const fetchVehicles = db => (req, res) => {
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
   db
     .select("vehicle_id", "description")
     .from("vehicles")
@@ -9,7 +9,7 @@ const fetchVehicles = db => (req, res) => {
 
 const addVehicle = db => (req, res) => {
   const { description } = req.body.data;
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
   // TODO: add more checks
   if (!description) {
@@ -33,7 +33,7 @@ const addVehicle = db => (req, res) => {
 
 const editVehicle = db => (req, res) => {
   const { vehicle_id, description } = req.body.data;
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
   db
     .select("company_id")
