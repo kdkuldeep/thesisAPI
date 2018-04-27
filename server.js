@@ -91,6 +91,13 @@ app.post(
   vehicles.addVehicle(db)
 );
 
+app.post(
+  "/vehicles/assign",
+  auth.authenticate,
+  auth.checkAuthorization(["manager"]),
+  vehicles.assignDriver(db)
+);
+
 app.put(
   "/vehicles",
   auth.authenticate,

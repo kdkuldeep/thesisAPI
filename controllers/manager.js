@@ -62,7 +62,9 @@ const register = (db, bcrypt) => (req, res) => {
     })
     .then(() =>
       // transaction suceeded, database tables changed
-      res.json({ user: auth.toAuthJSON({ email, username, company_id }) })
+      res.json({
+        user: auth.toAuthJSON({ email, username, company_id, role: "manager" })
+      })
     )
     .catch(err =>
       // transanction failed, no database changes

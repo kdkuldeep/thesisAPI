@@ -17,7 +17,46 @@ const fetchDrivers = db => (req, res) => {
 
 const editDriver = db => (req, res) => {};
 
-const deleteDriver = db => (req, res) => {};
+const deleteDriver = db => (req, res) => {
+  const email = req.params.email;
+  const { company_id } = req.user;
+
+  db
+    .select("company_id")
+    .from("drivers")
+    .where({ email })
+    .first()
+    .then(driverData => {
+      const driverCompanyId = driverData.company_id;
+
+      if (company_id === driverCompanyId) {
+        db("users")
+          .where({ email })
+          .del()
+          .then(() => res.json({ email }))
+          .catch(err => {
+            res.status(500).json({
+              errors: {
+                global: "Something went wrong. No driver exists"
+              }
+            });
+          });
+      } else {
+        res.status(401).json({
+          errors: {
+            global: "unauthorized access"
+          }
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).json({
+        errors: {
+          global: "something went wrong when deleting"
+        }
+      });
+    });
+};
 
 module.exports = {
   fetchDrivers,
