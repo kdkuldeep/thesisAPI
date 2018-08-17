@@ -56,6 +56,54 @@ const register = (db, bcrypt) => (req, res) => {
     );
 };
 
+const fetchTypes = (db, query, options) => {
+  return db
+    .select("type")
+    .from("products")
+    .where("type", "ilike", `%${query}%`)
+    .distinct("type")
+    .pluck("type")
+    .then(data => {
+      options.types = data;
+    });
+};
+
+const fetchCompanies = (db, query, options) => {
+  return db
+    .select("company_name")
+    .from("companies")
+    .where("company_name", "ilike", `%${query}%`)
+    .distinct("company_name")
+    .pluck("company_name")
+    .then(data => {
+      options.companies = data;
+    });
+};
+
+const fetchLocations = (db, query, options) => {
+  return db
+    .select("city")
+    .from("companies")
+    .distinct("city")
+    .where("city", "ilike", `%${query}%`)
+    .pluck("city")
+    .then(data => {
+      options.locations = data;
+    });
+};
+
+const fetchOptions = db => (req, res) => {
+  const query = req.query.q;
+  const options = { types: [], companies: [], locations: [] };
+
+  Promise.all([
+    fetchTypes(db, query, options),
+    fetchCompanies(db, query, options),
+    fetchLocations(db, query, options)
+  ]).then(() => res.json(options));
+};
+
 module.exports = {
-  register
+  register,
+  fetchOptions
 };

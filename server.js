@@ -133,6 +133,13 @@ app.delete(
   drivers.deleteDriver(db)
 );
 
+app.get(
+  "/options",
+  auth.authenticate,
+  auth.checkAuthorization(["customer"]),
+  customer.fetchOptions(db)
+);
+
 app.listen(5000, () => {
   console.log("Server listening on port 5000");
 });

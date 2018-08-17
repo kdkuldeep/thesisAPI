@@ -37,7 +37,7 @@ const deleteDriver = db => (req, res) => {
           .catch(err => {
             res.status(500).json({
               errors: {
-                global: "Something went wrong. No driver exists"
+                global: "Driver is assigned to vehicle"
               }
             });
           });
