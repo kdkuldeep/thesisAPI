@@ -11,6 +11,7 @@ const customer = require("./controllers/customer");
 const products = require("./controllers/products");
 const vehicles = require("./controllers/vehicles");
 const drivers = require("./controllers/drivers");
+const orders = require("./controllers/orders");
 
 dotenv.config();
 
@@ -138,6 +139,20 @@ app.get(
   auth.authenticate,
   auth.checkAuthorization(["customer"]),
   customer.fetchOptions(db)
+);
+
+app.get(
+  "/orders",
+  auth.authenticate,
+  auth.checkAuthorization(["customer", "manager"]),
+  orders.fetchOrders(db)
+);
+
+app.post(
+  "/orders",
+  auth.authenticate,
+  auth.checkAuthorization(["customer"]),
+  orders.addOrder(db)
 );
 
 app.listen(5000, () => {

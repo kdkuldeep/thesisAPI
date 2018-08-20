@@ -21,45 +21,44 @@ const register = (db, bcrypt) => (req, res) => {
 
   let company_id;
 
-  return db
-    .transaction(trx => {
-      return db
-        .insert({
-          email,
-          username,
-          password: bcrypt.hashSync(password, 10),
-          first_name,
-          last_name,
-          role: "manager"
-        })
-        .into("users")
-        .transacting(trx)
-        .then(() => {
-          return db
-            .insert({
-              company_name,
-              country,
-              city,
-              street,
-              number
-            })
-            .into("companies")
-            .transacting(trx)
-            .returning("company_id")
-            .then(ids => {
-              company_id = ids[0];
-              return db
-                .insert({
-                  email,
-                  company_id
-                })
-                .into("managers")
-                .transacting(trx);
-            });
-        })
-        .then(trx.commit)
-        .catch(trx.rollback);
-    })
+  db.transaction(trx => {
+    return db
+      .insert({
+        email,
+        username,
+        password: bcrypt.hashSync(password, 10),
+        first_name,
+        last_name,
+        role: "manager"
+      })
+      .into("users")
+      .transacting(trx)
+      .then(() => {
+        return db
+          .insert({
+            company_name,
+            country,
+            city,
+            street,
+            number
+          })
+          .into("companies")
+          .transacting(trx)
+          .returning("company_id")
+          .then(ids => {
+            company_id = ids[0];
+            return db
+              .insert({
+                email,
+                company_id
+              })
+              .into("managers")
+              .transacting(trx);
+          });
+      })
+      .then(trx.commit)
+      .catch(trx.rollback);
+  })
     .then(() =>
       // transaction suceeded, database tables changed
       res.json({
