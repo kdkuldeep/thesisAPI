@@ -1,4 +1,4 @@
-const db = require("../../../db");
+const db = require("../../../db/knex");
 
 // https://www.mapbox.com/api-documentation/?language=JavaScript#retrieve-a-matrix
 
@@ -43,8 +43,8 @@ const getCustomerCoords = company_id =>
     .select("latitude", "longitude")
     .from("orders")
     .where({ company_id })
-    .innerJoin("customers", "orders.customer_email", "customers.email")
-    .distinct("orders.customer_email")
+    .innerJoin("customers", "orders.customer_id", "customers.user_id")
+    .distinct("orders.customer_id")
     .then(data =>
       data.map(order => ({
         coordinates: [parseFloat(order.longitude), parseFloat(order.latitude)]

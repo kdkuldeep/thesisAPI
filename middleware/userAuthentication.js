@@ -18,6 +18,7 @@ const userAuthentication = (req, res, next) => {
         });
       } else {
         req.user = {
+          user_id: decoded.user_id,
           email: decoded.email,
           role: decoded.role,
           username: decoded.username

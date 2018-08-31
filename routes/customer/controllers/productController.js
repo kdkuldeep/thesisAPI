@@ -1,6 +1,6 @@
 const omit = require("lodash/omit");
 
-const db = require("../../../db");
+const db = require("../../../db/knex");
 
 const fetchProducts = (req, res) => {
   const searchTerm = req.query.term;

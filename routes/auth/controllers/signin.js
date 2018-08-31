@@ -1,14 +1,15 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const db = require("../../../db");
+const db = require("../../../db/knex");
 const roles = require("../../../roles");
 
 // if user is manager or driver, include company_id in JWT
-const generateJWT = (email, username, role, company_id) => {
+const generateJWT = (user_id, email, username, role, company_id) => {
   if (company_id) {
     return jwt.sign(
       {
+        user_id,
         email,
         username,
         role,
@@ -19,6 +20,7 @@ const generateJWT = (email, username, role, company_id) => {
   }
   return jwt.sign(
     {
+      user_id,
       email,
       username,
       role
@@ -27,9 +29,9 @@ const generateJWT = (email, username, role, company_id) => {
   );
 };
 
-const toAuthJSON = ({ email, username, role, company_id }) => ({
+const toAuthJSON = ({ user_id, email, username, role, company_id }) => ({
   email,
-  token: generateJWT(email, username, role, company_id),
+  token: generateJWT(user_id, email, username, role, company_id),
   username,
   role
 });
@@ -47,20 +49,25 @@ const handleSignin = (req, res) => {
     .from("users")
     .where({ email })
     .first()
-    .then(data => {
-      if (bcrypt.compareSync(password, data.password)) {
+    .then(userData => {
+      const userRole = parseInt(userData.role, 10);
+
+      if (bcrypt.compareSync(password, userData.password)) {
         // if manager of driver pass company_id to encode in JWT
-        if (data.role === roles.MANAGER || data.role === roles.DRIVER) {
+        if (userRole === roles.MANAGER || userRole === roles.DRIVER) {
           db.select("company_id")
-            .from(data.role === roles.MANAGER ? "managers" : "drivers")
-            .where({ email })
+            .from(userRole === roles.MANAGER ? "managers" : "drivers")
+            .where("user_id", userData.user_id)
             .first()
-            .then(idData => {
-              data.company_id = idData.company_id;
-              return res.json({ user: toAuthJSON(data) });
-            });
+            .then(({ company_id }) =>
+              res.json({
+                user: toAuthJSON({ ...userData, company_id, role: userRole })
+              })
+            );
         } else {
-          return res.json({ user: toAuthJSON(data) });
+          return res.json({
+            user: toAuthJSON({ ...userData, role: userRole })
+          });
         }
       } else {
         // error for invalid password

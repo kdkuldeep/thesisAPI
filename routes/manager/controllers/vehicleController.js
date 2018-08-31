@@ -1,29 +1,30 @@
-const db = require("../../../db");
+const db = require("../../../db/knex");
 
 const fetchVehicles = (req, res) => {
   const { company_id } = req.user;
-  db.select("vehicle_id", "description", "driver_id")
+  db.select("vehicle_id", "licence_plate", "capacity", "driver_id")
     .from("vehicles")
     .where({ company_id })
     .then(data => res.json({ vehicles: data }));
 };
 
 const addVehicle = (req, res) => {
-  const { description } = req.body.data;
+  const { licence_plate, capacity } = req.body.data;
   const { company_id } = req.user;
 
   // TODO: add more checks
-  if (!description) {
+  if (!licence_plate || !capacity) {
     return res.status(400).json("incorrect form submission");
   }
 
-  db.insert({ description, company_id })
+  db.insert({ licence_plate, capacity, company_id })
     .into("vehicles")
     .returning(["vehicle_id", "driver_id"])
     .then(data =>
       res.json({
         vehicle_id: data[0].vehicle_id,
-        description,
+        licence_plate,
+        capacity,
         driver_id: data[0].driver_id
       })
     )
@@ -38,7 +39,7 @@ const addVehicle = (req, res) => {
 };
 
 const editVehicle = (req, res) => {
-  const { vehicle_id, description } = req.body.data;
+  const { vehicle_id, licence_plate, capacity } = req.body.data;
   const { company_id } = req.user;
 
   db.select("*")
@@ -51,12 +52,14 @@ const editVehicle = (req, res) => {
       if (company_id === vehicleCompanyId) {
         db("vehicles")
           .where({ vehicle_id })
-          .update({ description })
-          .then(() => res.json({ vehicle_id, description, driver_id }))
+          .update({ licence_plate, capacity })
+          .then(() =>
+            res.json({ vehicle_id, licence_plate, capacity, driver_id })
+          )
           .catch(err => {
             res.status(500).json({
               errors: {
-                global: "Already have vehicle with the same description"
+                global: "Already have vehicle with the same licence plate"
               }
             });
           });
@@ -119,7 +122,7 @@ const deleteVehicle = (req, res) => {
 
 const assignDriver = (req, res) => {
   const { company_id } = req.user;
-  const { email, vehicle_id } = req.body.data;
+  const { driver_id, vehicle_id } = req.body.data;
 
   db.select("*")
     .from("vehicles")
@@ -127,12 +130,12 @@ const assignDriver = (req, res) => {
     .first()
     .then(vehicleData => {
       const vehicleCompanyId = vehicleData.company_id;
-      const { description } = vehicleData;
+      const { licence_plate } = vehicleData;
       if (company_id === vehicleCompanyId) {
         db("vehicles")
           .where({ vehicle_id })
-          .update({ driver_id: email })
-          .then(() => res.json({ vehicle_id, description, driver_id: email }))
+          .update({ driver_id })
+          .then(() => res.json({ vehicle_id, licence_plate, driver_id }))
           .catch(err => {
             res.status(500).json({
               errors: {

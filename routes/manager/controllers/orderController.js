@@ -1,16 +1,30 @@
-const db = require("../../../db");
+const db = require("../../../db/knex");
 
 const fetchOrders = (req, res) => {
   const { company_id } = req.user;
-  db.select()
+  db.select(
+    "order_id",
+    "customer_id",
+    "email as customer_email",
+    "first_name",
+    "last_name",
+    "country",
+    "city",
+    "street",
+    "number",
+    "value",
+    "created_at",
+    "vehicle_id"
+  )
     .from("orders")
     .where({ company_id })
-    .innerJoin("customers", "orders.customer_email", "customers.email")
+    .innerJoin("customers", "orders.customer_id", "customers.user_id")
+    .innerJoin("users", "orders.customer_id", "users.user_id")
     .then(orders => {
       const promises = orders.map(order => {
         const { order_id } = order;
         return db
-          .select()
+          .select("products.product_id", "name", "type", "price", "quantity")
           .from("products")
           .innerJoin(
             "order_product_rel",

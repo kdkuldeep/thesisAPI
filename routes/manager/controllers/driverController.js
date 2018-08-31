@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 
-const db = require("../../../db");
+const db = require("../../../db/knex");
 const roles = require("../../../roles");
 
 const registerDriver = (req, res) => {
@@ -26,19 +26,31 @@ const registerDriver = (req, res) => {
         })
         .into("users")
         .transacting(trx)
-        .then(() => db
+        .returning("user_id")
+        .then(userData =>
+          db
             .insert({
-              email,
+              user_id: userData[0],
               company_id
             })
             .into("drivers")
-            .transacting(trx))
+            .transacting(trx)
+            .returning("user_id")
+        )
         .then(trx.commit)
         .catch(trx.rollback)
     )
-    .then(() =>
+    .then(driverData =>
       // transaction suceeded, database tables changed
-      res.json({ user: { email, username, first_name, last_name } })
+      res.json({
+        user: {
+          driver_id: driverData[0],
+          email,
+          username,
+          first_name,
+          last_name
+        }
+      })
     )
     .catch(err =>
       // transanction failed, no database changes
@@ -52,8 +64,9 @@ const registerDriver = (req, res) => {
 const fetchDrivers = (req, res) => {
   const { company_id } = req.user;
   db("drivers")
-    .join("users", "drivers.email", "=", "users.email")
+    .join("users", "drivers.user_id", "=", "users.user_id")
     .select(
+      "users.user_id as driver_id",
       "users.email",
       "users.username",
       "users.first_name",
@@ -69,21 +82,21 @@ const fetchDrivers = (req, res) => {
 const editDriver = (req, res) => {};
 
 const deleteDriver = (req, res) => {
-  const { email } = req.params;
+  const { driver_id } = req.params.id;
   const { company_id } = req.user;
 
   db.select("company_id")
     .from("drivers")
-    .where({ email })
+    .where("user_id", driver_id)
     .first()
     .then(driverData => {
       const driverCompanyId = driverData.company_id;
 
       if (company_id === driverCompanyId) {
         db("users")
-          .where({ email })
+          .where("user_id", driver_id)
           .del()
-          .then(() => res.json({ email }))
+          .then(() => res.json({ driver_id }))
           .catch(err => {
             res.status(500).json({
               errors: {

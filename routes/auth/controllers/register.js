@@ -1,8 +1,30 @@
 const bcrypt = require("bcrypt");
 
-const db = require("../../../db");
+const db = require("../../../db/knex");
 const roles = require("../../../roles");
 const { toAuthJSON } = require("./signin");
+
+const insertInUsersTable = (
+  trx,
+  email,
+  username,
+  password,
+  first_name,
+  last_name,
+  role
+) =>
+  db
+    .insert({
+      email,
+      username,
+      password: bcrypt.hashSync(password, 10),
+      first_name,
+      last_name,
+      role
+    })
+    .into("users")
+    .transacting(trx)
+    .returning("user_id");
 
 const managerRegistration = (req, res) => {
   const {
@@ -24,53 +46,52 @@ const managerRegistration = (req, res) => {
     return res.status(400).json("incorrect form submission");
   }
 
-  let company_id;
-
   db.transaction(trx =>
-    db
-      .insert({
+    Promise.all([
+      insertInUsersTable(
+        trx,
         email,
         username,
-        password: bcrypt.hashSync(password, 10),
+        password,
         first_name,
         last_name,
-        role: roles.MANAGER
-      })
-      .into("users")
-      .transacting(trx)
-      .then(() => db
+        roles.MANAGER
+      ),
+      db
+        .insert({
+          company_name,
+          country,
+          city,
+          street,
+          number,
+          latitude: coords.lat,
+          longitude: coords.lng
+        })
+        .into("companies")
+        .transacting(trx)
+        .returning("company_id")
+    ])
+      .then(([userData, companyData]) =>
+        db
           .insert({
-            company_name,
-            country,
-            city,
-            street,
-            number,
-            latitude: coords.lat,
-            longitude: coords.lng
+            user_id: userData[0],
+            company_id: companyData[0]
           })
-          .into("companies")
+          .into("managers")
           .transacting(trx)
-          .returning("company_id")
-          .then(ids => {
-            company_id = ids[0];
-            return db
-              .insert({
-                email,
-                company_id
-              })
-              .into("managers")
-              .transacting(trx);
-          }))
+          .returning(["user_id", "company_id"])
+      )
       .then(trx.commit)
       .catch(trx.rollback)
   )
-    .then(() =>
+    .then(managerData =>
       // transaction suceeded, database tables changed
       res.json({
         user: toAuthJSON({
+          user_id: managerData[0].user_id,
           email,
           username,
-          company_id,
+          company_id: managerData[0].company_id,
           role: roles.MANAGER
         })
       })
@@ -105,20 +126,19 @@ const customerRegistration = (req, res) => {
 
   return db
     .transaction(trx =>
-      db
-        .insert({
-          email,
-          username,
-          password: bcrypt.hashSync(password, 10),
-          first_name,
-          last_name,
-          role: roles.CUSTOMER
-        })
-        .into("users")
-        .transacting(trx)
-        .then(() => db
+      insertInUsersTable(
+        trx,
+        email,
+        username,
+        password,
+        first_name,
+        last_name,
+        roles.CUSTOMER
+      )
+        .then(userData =>
+          db
             .insert({
-              email,
+              user_id: userData[0],
               country,
               city,
               street,
@@ -127,14 +147,21 @@ const customerRegistration = (req, res) => {
               longitude: coords.lng
             })
             .into("customers")
-            .transacting(trx))
+            .transacting(trx)
+            .returning("user_id")
+        )
         .then(trx.commit)
         .catch(trx.rollback)
     )
-    .then(() =>
+    .then(customerData =>
       // transaction suceeded, database tables changed
       res.json({
-        user: toAuthJSON({ email, username, role: roles.CUSTOMER })
+        user: toAuthJSON({
+          user_id: customerData[0],
+          email,
+          username,
+          role: roles.CUSTOMER
+        })
       })
     )
     .catch(err =>

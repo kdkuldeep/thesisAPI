@@ -1,12 +1,12 @@
-const db = require("../../../db");
+const db = require("../../../db/knex");
 
 // FIXME: fix the table columns returned
 
 const fetchOrders = (req, res) => {
-  const customer_email = req.user.email;
+  const { user_id } = req.user;
   db.select()
     .from("orders")
-    .where({ customer_email })
+    .where("customer_id", user_id)
     .innerJoin("companies", "orders.company_id", "companies.company_id")
     .then(orders => {
       const promises = orders.map(order => {
@@ -34,7 +34,7 @@ const fetchOrders = (req, res) => {
 
 const addOrder = (req, res) => {
   const { basketContent } = req.body;
-  const customer_email = req.user.email;
+  const { user_id } = req.user;
 
   // Separate content's products by companies
   // to create the corresponding orders
@@ -78,7 +78,7 @@ const addOrder = (req, res) => {
           // Create promises for all insertions in ORDERS
           promises.push(
             db
-              .insert({ company_id, customer_email })
+              .insert({ company_id, customer_id: user_id })
               .into("orders")
               .transacting(trx)
               .returning("order_id")
@@ -103,10 +103,10 @@ const addOrder = (req, res) => {
                   }
                 );
 
-                return Promise.all(innerPromises).then(() => 
+                return Promise.all(innerPromises).then(() =>
                   // When insertions into ORDER_PRODUCT_REL complete
                   // update the order value in ORDERS
-                   db("orders")
+                  db("orders")
                     .where({ order_id })
                     .update({ value: orderValue })
                     .transacting(trx)
