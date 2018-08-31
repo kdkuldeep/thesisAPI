@@ -1,6 +1,10 @@
-const auth = require("./auth");
+const bcrypt = require("bcrypt");
 
-const register = (db, bcrypt) => (req, res) => {
+const db = require("../../../db");
+const roles = require("../../../roles");
+const { toAuthJSON } = require("./signin");
+
+const managerRegistration = (req, res) => {
   const {
     email,
     username,
@@ -11,7 +15,8 @@ const register = (db, bcrypt) => (req, res) => {
     country,
     city,
     street,
-    number
+    number,
+    coords
   } = req.body.data;
 
   // TODO: add more checks
@@ -21,26 +26,27 @@ const register = (db, bcrypt) => (req, res) => {
 
   let company_id;
 
-  db.transaction(trx => {
-    return db
+  db.transaction(trx =>
+    db
       .insert({
         email,
         username,
         password: bcrypt.hashSync(password, 10),
         first_name,
         last_name,
-        role: "manager"
+        role: roles.MANAGER
       })
       .into("users")
       .transacting(trx)
-      .then(() => {
-        return db
+      .then(() => db
           .insert({
             company_name,
             country,
             city,
             street,
-            number
+            number,
+            latitude: coords.lat,
+            longitude: coords.lng
           })
           .into("companies")
           .transacting(trx)
@@ -54,15 +60,19 @@ const register = (db, bcrypt) => (req, res) => {
               })
               .into("managers")
               .transacting(trx);
-          });
-      })
+          }))
       .then(trx.commit)
-      .catch(trx.rollback);
-  })
+      .catch(trx.rollback)
+  )
     .then(() =>
       // transaction suceeded, database tables changed
       res.json({
-        user: auth.toAuthJSON({ email, username, company_id, role: "manager" })
+        user: toAuthJSON({
+          email,
+          username,
+          company_id,
+          role: roles.MANAGER
+        })
       })
     )
     .catch(err =>
@@ -74,10 +84,19 @@ const register = (db, bcrypt) => (req, res) => {
     );
 };
 
-const registerDriver = (db, bcrypt) => (req, res) => {
-  const { email, username, password, first_name, last_name } = req.body.data;
-
-  const { company_id } = req.user;
+const customerRegistration = (req, res) => {
+  const {
+    email,
+    username,
+    password,
+    first_name,
+    last_name,
+    country,
+    city,
+    street,
+    number,
+    coords
+  } = req.body.data;
 
   // TODO: add more checks
   if (!email || !username || !password) {
@@ -85,44 +104,46 @@ const registerDriver = (db, bcrypt) => (req, res) => {
   }
 
   return db
-    .transaction(trx => {
-      return db
+    .transaction(trx =>
+      db
         .insert({
           email,
           username,
           password: bcrypt.hashSync(password, 10),
           first_name,
           last_name,
-          role: "driver"
+          role: roles.CUSTOMER
         })
         .into("users")
         .transacting(trx)
-        .then(() => {
-          return db
+        .then(() => db
             .insert({
               email,
-              company_id
+              country,
+              city,
+              street,
+              number,
+              latitude: coords.lat,
+              longitude: coords.lng
             })
-            .into("drivers")
-            .transacting(trx);
-        })
+            .into("customers")
+            .transacting(trx))
         .then(trx.commit)
-        .catch(trx.rollback);
-    })
+        .catch(trx.rollback)
+    )
     .then(() =>
       // transaction suceeded, database tables changed
-      res.json({ user: { email, username, first_name, last_name } })
+      res.json({
+        user: toAuthJSON({ email, username, role: roles.CUSTOMER })
+      })
     )
     .catch(err =>
       // transanction failed, no database changes
-      {
-        console.log(err);
-        res.status(400).json({ errors: { global: "unable to register" } });
-      }
+      res.status(400).json({ errors: { global: "unable to register" } })
     );
 };
 
 module.exports = {
-  register,
-  registerDriver
+  managerRegistration,
+  customerRegistration
 };

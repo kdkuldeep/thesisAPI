@@ -1,13 +1,14 @@
-const fetchVehicles = db => (req, res) => {
+const db = require("../../../db");
+
+const fetchVehicles = (req, res) => {
   const { company_id } = req.user;
-  db
-    .select("vehicle_id", "description", "driver_id")
+  db.select("vehicle_id", "description", "driver_id")
     .from("vehicles")
     .where({ company_id })
     .then(data => res.json({ vehicles: data }));
 };
 
-const addVehicle = db => (req, res) => {
+const addVehicle = (req, res) => {
   const { description } = req.body.data;
   const { company_id } = req.user;
 
@@ -16,8 +17,7 @@ const addVehicle = db => (req, res) => {
     return res.status(400).json("incorrect form submission");
   }
 
-  db
-    .insert({ description, company_id })
+  db.insert({ description, company_id })
     .into("vehicles")
     .returning(["vehicle_id", "driver_id"])
     .then(data =>
@@ -37,12 +37,11 @@ const addVehicle = db => (req, res) => {
     });
 };
 
-const editVehicle = db => (req, res) => {
+const editVehicle = (req, res) => {
   const { vehicle_id, description } = req.body.data;
   const { company_id } = req.user;
 
-  db
-    .select("*")
+  db.select("*")
     .from("vehicles")
     .where({ vehicle_id })
     .first()
@@ -78,13 +77,12 @@ const editVehicle = db => (req, res) => {
     });
 };
 
-const deleteVehicle = db => (req, res) => {
+const deleteVehicle = (req, res) => {
   const vehicle_id = req.params.id;
 
-  const { email, company_id } = req.user;
+  const { company_id } = req.user;
 
-  db
-    .select("company_id")
+  db.select("company_id")
     .from("vehicles")
     .where({ vehicle_id })
     .first()
@@ -119,12 +117,11 @@ const deleteVehicle = db => (req, res) => {
     });
 };
 
-const assignDriver = db => (req, res) => {
+const assignDriver = (req, res) => {
   const { company_id } = req.user;
   const { email, vehicle_id } = req.body.data;
 
-  db
-    .select("*")
+  db.select("*")
     .from("vehicles")
     .where({ vehicle_id })
     .first()

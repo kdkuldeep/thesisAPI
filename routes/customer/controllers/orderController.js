@@ -1,4 +1,38 @@
-const addOrder = db => (req, res) => {
+const db = require("../../../db");
+
+// FIXME: fix the table columns returned
+
+const fetchOrders = (req, res) => {
+  const customer_email = req.user.email;
+  db.select()
+    .from("orders")
+    .where({ customer_email })
+    .innerJoin("companies", "orders.company_id", "companies.company_id")
+    .then(orders => {
+      const promises = orders.map(order => {
+        const { order_id } = order;
+        return db
+          .select()
+          .from("products")
+          .innerJoin(
+            "order_product_rel",
+            "products.product_id",
+            "order_product_rel.product_id"
+          )
+          .where({ order_id })
+          .then(orderedProducts => ({
+            ...order,
+            products: orderedProducts
+          }));
+      });
+
+      return Promise.all(promises).then(orders => {
+        res.json({ orders });
+      });
+    });
+};
+
+const addOrder = (req, res) => {
   const { basketContent } = req.body;
   const customer_email = req.user.email;
 
@@ -40,7 +74,7 @@ const addOrder = db => (req, res) => {
 
       db.transaction(trx => {
         const promises = [];
-        for (let company_id in contentByCompany) {
+        for (const company_id in contentByCompany) {
           // Create promises for all insertions in ORDERS
           promises.push(
             db
@@ -69,14 +103,14 @@ const addOrder = db => (req, res) => {
                   }
                 );
 
-                return Promise.all(innerPromises).then(() => {
+                return Promise.all(innerPromises).then(() => 
                   // When insertions into ORDER_PRODUCT_REL complete
                   // update the order value in ORDERS
-                  return db("orders")
+                   db("orders")
                     .where({ order_id })
                     .update({ value: orderValue })
-                    .transacting(trx);
-                });
+                    .transacting(trx)
+                );
               })
           );
         }
@@ -86,7 +120,7 @@ const addOrder = db => (req, res) => {
       })
         .then(() =>
           // transaction suceeded, database tables changed
-          //return new orders
+          // return new orders
           {
             db.select()
               .from("orders")
@@ -134,43 +168,7 @@ const addOrder = db => (req, res) => {
     });
 };
 
-const fetchOrders = db => (req, res) => {
-  switch (req.user.role) {
-    case "manager":
-      break;
-    case "customer":
-      const customer_email = req.user.email;
-      db.select()
-        .from("orders")
-        .where({ customer_email })
-        .innerJoin("companies", "orders.company_id", "companies.company_id")
-        .then(orders => {
-          const promises = orders.map(order => {
-            const { order_id } = order;
-            return db
-              .select()
-              .from("products")
-              .innerJoin(
-                "order_product_rel",
-                "products.product_id",
-                "order_product_rel.product_id"
-              )
-              .where({ order_id })
-              .then(orderedProducts => ({
-                ...order,
-                products: orderedProducts
-              }));
-          });
-
-          return Promise.all(promises).then(orders => {
-            res.json({ orders });
-          });
-        });
-      break;
-  }
-};
-
 module.exports = {
-  addOrder,
-  fetchOrders
+  fetchOrders,
+  addOrder
 };
