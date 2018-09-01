@@ -9,13 +9,8 @@ const fetchProducts = (req, res) => {
 };
 
 const addProduct = (req, res) => {
-  const { name, price, type } = req.body.data;
+  const { name, price, type } = req.validatedData.data;
   const { company_id } = req.user;
-
-  // TODO: add more checks
-  if (!name || !price) {
-    return res.status(400).json("incorrect form submission");
-  }
 
   db.insert({ company_id, name, price, type })
     .into("products")
@@ -32,7 +27,7 @@ const addProduct = (req, res) => {
 };
 
 const editProduct = (req, res) => {
-  const { product_id, name, price, type } = req.body.data;
+  const { product_id, name, price, type } = req.validatedData.data;
   const { company_id } = req.user;
 
   db.select("company_id")

@@ -5,20 +5,12 @@ const orders = require("./controllers/orderController");
 
 const roles = require("../../roles");
 
-// Check user authorization
+const authorizeUser = require("../../middleware/userAuthorization");
 
-router.use((req, res, next) => {
-  if (req.user.role === roles.CUSTOMER) {
-    // console.log(`user authorized as ${req.user.role}`);
-    next();
-  } else {
-    res.status(403).json({
-      errors: {
-        global: "Unauthorized user"
-      }
-    });
-  }
-});
+const validateRequestBody = require("../../middleware/requestBodyValidation");
+const newOrderSchema = require("../../request_schemas/newOrderSchema");
+
+router.use(authorizeUser(roles.CUSTOMER));
 
 // Product fetching/managment
 
@@ -28,6 +20,6 @@ router.get("/options", products.fetchOptions);
 // Orders fetching/management
 
 router.get("/orders", orders.fetchOrders);
-router.post("/orders", orders.addOrder);
+router.post("/orders", validateRequestBody(newOrderSchema), orders.addOrder);
 
 module.exports = router;

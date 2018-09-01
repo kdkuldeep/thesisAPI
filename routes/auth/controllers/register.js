@@ -39,12 +39,7 @@ const managerRegistration = (req, res) => {
     street,
     number,
     coords
-  } = req.body.data;
-
-  // TODO: add more checks
-  if (!email || !username || !password || !company_name) {
-    return res.status(400).json("incorrect form submission");
-  }
+  } = req.validatedData.data;
 
   db.transaction(trx =>
     Promise.all([
@@ -117,12 +112,7 @@ const customerRegistration = (req, res) => {
     street,
     number,
     coords
-  } = req.body.data;
-
-  // TODO: add more checks
-  if (!email || !username || !password) {
-    return res.status(400).json("incorrect form submission");
-  }
+  } = req.validatedData.data;
 
   return db
     .transaction(trx =>

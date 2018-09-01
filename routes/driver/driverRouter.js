@@ -2,19 +2,8 @@ const router = require("express").Router();
 
 const roles = require("../../roles");
 
-// Check user authorization
+const authorizeUser = require("../../middleware/userAuthorization");
 
-router.use((req, res, next) => {
-  if (req.user.role === roles.DRIVER) {
-    // console.log(`user authorized as ${req.user.role}`);
-    next();
-  } else {
-    res.status(403).json({
-      errors: {
-        global: "Unauthorized user"
-      }
-    });
-  }
-});
+router.use(authorizeUser(roles.DRIVER));
 
 module.exports = router;

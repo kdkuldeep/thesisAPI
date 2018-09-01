@@ -33,7 +33,7 @@ const fetchOrders = (req, res) => {
 };
 
 const addOrder = (req, res) => {
-  const { basketContent } = req.body;
+  const { basketContent } = req.validatedData;
   const { user_id } = req.user;
 
   // Separate content's products by companies

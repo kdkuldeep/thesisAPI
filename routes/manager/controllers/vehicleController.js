@@ -9,13 +9,8 @@ const fetchVehicles = (req, res) => {
 };
 
 const addVehicle = (req, res) => {
-  const { licence_plate, capacity } = req.body.data;
+  const { licence_plate, capacity } = req.validatedData.data;
   const { company_id } = req.user;
-
-  // TODO: add more checks
-  if (!licence_plate || !capacity) {
-    return res.status(400).json("incorrect form submission");
-  }
 
   db.insert({ licence_plate, capacity, company_id })
     .into("vehicles")
@@ -39,7 +34,7 @@ const addVehicle = (req, res) => {
 };
 
 const editVehicle = (req, res) => {
-  const { vehicle_id, licence_plate, capacity } = req.body.data;
+  const { vehicle_id, licence_plate, capacity } = req.validatedData.data;
   const { company_id } = req.user;
 
   db.select("*")
@@ -122,7 +117,7 @@ const deleteVehicle = (req, res) => {
 
 const assignDriver = (req, res) => {
   const { company_id } = req.user;
-  const { driver_id, vehicle_id } = req.body.data;
+  const { driver_id, vehicle_id } = req.validatedData.data;
 
   db.select("*")
     .from("vehicles")
@@ -130,13 +125,16 @@ const assignDriver = (req, res) => {
     .first()
     .then(vehicleData => {
       const vehicleCompanyId = vehicleData.company_id;
-      const { licence_plate } = vehicleData;
+      const { licence_plate, capacity } = vehicleData;
       if (company_id === vehicleCompanyId) {
         db("vehicles")
           .where({ vehicle_id })
           .update({ driver_id })
-          .then(() => res.json({ vehicle_id, licence_plate, driver_id }))
+          .then(() =>
+            res.json({ vehicle_id, licence_plate, capacity, driver_id })
+          )
           .catch(err => {
+            // OR ID IS NOT DRIVER
             res.status(500).json({
               errors: {
                 global: "Already have vehicle with the same driver"

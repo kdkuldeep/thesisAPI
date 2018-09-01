@@ -37,14 +37,8 @@ const toAuthJSON = ({ user_id, email, username, role, company_id }) => ({
 });
 
 const handleSignin = (req, res) => {
-  const { email, password } = req.body.credentials;
+  const { email, password } = req.validatedData.credentials;
 
-  // TODO: add more checks
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ errors: { global: "invalid Credentials 3" } });
-  }
   db.select("*")
     .from("users")
     .where({ email })

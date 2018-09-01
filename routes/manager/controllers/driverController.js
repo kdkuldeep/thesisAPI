@@ -4,14 +4,15 @@ const db = require("../../../db/knex");
 const roles = require("../../../roles");
 
 const registerDriver = (req, res) => {
-  const { email, username, password, first_name, last_name } = req.body.data;
+  const {
+    email,
+    username,
+    password,
+    first_name,
+    last_name
+  } = req.validatedData.data;
 
   const { company_id } = req.user;
-
-  // TODO: add more checks
-  if (!email || !username || !password) {
-    return res.status(400).json("incorrect form submission");
-  }
 
   return db
     .transaction(trx =>
@@ -82,7 +83,7 @@ const fetchDrivers = (req, res) => {
 const editDriver = (req, res) => {};
 
 const deleteDriver = (req, res) => {
-  const { driver_id } = req.params.id;
+  const driver_id = req.params.id;
   const { company_id } = req.user;
 
   db.select("company_id")
