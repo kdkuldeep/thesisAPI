@@ -1,14 +1,17 @@
 const db = require("../../../db/knex");
 
-const fetchProducts = (req, res) => {
+const ApplicationError = require("../../../errors/ApplicationError");
+
+const fetchProducts = (req, res, next) => {
   const { company_id } = req.user;
   db.select("product_id", "name", "price", "type")
     .from("products")
     .where({ company_id })
-    .then(data => res.json({ products: data }));
+    .then(data => res.json({ products: data }))
+    .catch(next(new ApplicationError()));
 };
 
-const addProduct = (req, res) => {
+const addProduct = (req, res, next) => {
   const { name, price, type } = req.validatedData.data;
   const { company_id } = req.user;
 
@@ -18,15 +21,16 @@ const addProduct = (req, res) => {
     .then(ids => res.json({ product_id: ids[0], name, price, type }))
     .catch(err => {
       console.log(err);
-      res.status(400).json({
-        errors: {
-          global: "You already have a product with the same name"
-        }
-      });
+      next(
+        new ApplicationError(
+          "You already have a product with the same name",
+          400
+        )
+      );
     });
 };
 
-const editProduct = (req, res) => {
+const editProduct = (req, res, next) => {
   const { product_id, name, price, type } = req.validatedData.data;
   const { company_id } = req.user;
 
@@ -42,30 +46,25 @@ const editProduct = (req, res) => {
           .update({ name, price, type })
           .then(() => res.json({ product_id, name, price, type }))
           .catch(err => {
-            res.status(500).json({
-              errors: {
-                global: "You already have a product with the same name"
-              }
-            });
+            console.log(err);
+            next(
+              new ApplicationError(
+                "You already have a product with the same name",
+                400
+              )
+            );
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when updating"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 
-const deleteProduct = (req, res) => {
+const deleteProduct = (req, res, next) => {
   const product_id = req.params.id;
 
   const { company_id } = req.user;
@@ -82,26 +81,16 @@ const deleteProduct = (req, res) => {
           .del()
           .then(() => res.json({ product_id }))
           .catch(err => {
-            res.status(500).json({
-              errors: {
-                global: "Something went wrong. No product exists"
-              }
-            });
+            console.log(err);
+            next(new ApplicationError());
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when deleting"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 

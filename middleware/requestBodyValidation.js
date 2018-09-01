@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const ApplicationError = require("../errors/ApplicationError");
 
 const requestBodyValidation = schema => (req, res, next) => {
   Joi.validate(
@@ -7,8 +8,6 @@ const requestBodyValidation = schema => (req, res, next) => {
     { abortEarly: false },
     (error, schemaResult) => {
       if (error) {
-        console.log(error.details);
-
         const details = error.details.map(d => ({
           message: d.message,
           path: d.path
@@ -17,12 +16,12 @@ const requestBodyValidation = schema => (req, res, next) => {
         console.log(details);
         console.log("----------------------------------------\n");
 
-        return next(error);
+        return next(new ApplicationError("Invalid request data", 400));
       }
       req.validatedData = schemaResult;
-      console.log("\n----------------shema result-----------------");
+      console.log("\n--------------- Validated Request Body ----------------");
       console.log(schemaResult);
-      console.log("---------------------------------------------\n");
+      console.log("-------------------------------------------------------\n");
       next();
     }
   );

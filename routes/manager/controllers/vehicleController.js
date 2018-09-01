@@ -1,14 +1,17 @@
 const db = require("../../../db/knex");
 
-const fetchVehicles = (req, res) => {
+const ApplicationError = require("../../../errors/ApplicationError");
+
+const fetchVehicles = (req, res, next) => {
   const { company_id } = req.user;
   db.select("vehicle_id", "licence_plate", "capacity", "driver_id")
     .from("vehicles")
     .where({ company_id })
-    .then(data => res.json({ vehicles: data }));
+    .then(data => res.json({ vehicles: data }))
+    .catch(next(new ApplicationError()));
 };
 
-const addVehicle = (req, res) => {
+const addVehicle = (req, res, next) => {
   const { licence_plate, capacity } = req.validatedData.data;
   const { company_id } = req.user;
 
@@ -25,15 +28,16 @@ const addVehicle = (req, res) => {
     )
     .catch(err => {
       console.log(err);
-      res.status(400).json({
-        errors: {
-          global: "Already have vehicle with the same description"
-        }
-      });
+      next(
+        new ApplicationError(
+          "You already have a vehicle with the same licence plate",
+          400
+        )
+      );
     });
 };
 
-const editVehicle = (req, res) => {
+const editVehicle = (req, res, next) => {
   const { vehicle_id, licence_plate, capacity } = req.validatedData.data;
   const { company_id } = req.user;
 
@@ -52,30 +56,25 @@ const editVehicle = (req, res) => {
             res.json({ vehicle_id, licence_plate, capacity, driver_id })
           )
           .catch(err => {
-            res.status(500).json({
-              errors: {
-                global: "Already have vehicle with the same licence plate"
-              }
-            });
+            console.log(err);
+            next(
+              new ApplicationError(
+                "Already have vehicle with the same licence plate",
+                400
+              )
+            );
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when updating"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 
-const deleteVehicle = (req, res) => {
+const deleteVehicle = (req, res, next) => {
   const vehicle_id = req.params.id;
 
   const { company_id } = req.user;
@@ -92,30 +91,20 @@ const deleteVehicle = (req, res) => {
           .del()
           .then(() => res.json({ vehicle_id }))
           .catch(err => {
-            res.status(500).json({
-              errors: {
-                global: "Something went wrong. No vehicle exists"
-              }
-            });
+            console.log(err);
+            next(new ApplicationError());
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when deleting"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 
-const assignDriver = (req, res) => {
+const assignDriver = (req, res, next) => {
   const { company_id } = req.user;
   const { driver_id, vehicle_id } = req.validatedData.data;
 
@@ -134,27 +123,16 @@ const assignDriver = (req, res) => {
             res.json({ vehicle_id, licence_plate, capacity, driver_id })
           )
           .catch(err => {
-            // OR ID IS NOT DRIVER
-            res.status(500).json({
-              errors: {
-                global: "Already have vehicle with the same driver"
-              }
-            });
+            console.log(err);
+            next(new ApplicationError());
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when updating"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 

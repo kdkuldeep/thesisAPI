@@ -1,6 +1,8 @@
 const db = require("../../../db/knex");
 
-const fetchOrders = (req, res) => {
+const ApplicationError = require("../../../errors/ApplicationError");
+
+const fetchOrders = (req, res, next) => {
   const { company_id } = req.user;
   db.select(
     "order_id",
@@ -41,6 +43,10 @@ const fetchOrders = (req, res) => {
       return Promise.all(promises).then(orders => {
         res.json({ orders });
       });
+    })
+    .catch(err => {
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 

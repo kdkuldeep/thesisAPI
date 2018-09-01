@@ -3,7 +3,9 @@ const bcrypt = require("bcrypt");
 const db = require("../../../db/knex");
 const roles = require("../../../roles");
 
-const registerDriver = (req, res) => {
+const ApplicationError = require("../../../errors/ApplicationError");
+
+const registerDriver = (req, res, next) => {
   const {
     email,
     username,
@@ -56,13 +58,14 @@ const registerDriver = (req, res) => {
     .catch(err =>
       // transanction failed, no database changes
       {
+        // TODO: parse err to send better message to client
         console.log(err);
-        res.status(400).json({ errors: { global: "unable to register" } });
+        next(new ApplicationError("Email/username already exists"));
       }
     );
 };
 
-const fetchDrivers = (req, res) => {
+const fetchDrivers = (req, res, next) => {
   const { company_id } = req.user;
   db("drivers")
     .join("users", "drivers.user_id", "=", "users.user_id")
@@ -77,12 +80,15 @@ const fetchDrivers = (req, res) => {
     .then(data => {
       res.json({ drivers: data });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log(err);
+      next(new ApplicationError("Cannot fetch drivers"));
+    });
 };
 
-const editDriver = (req, res) => {};
+// const editDriver = (req, res, next) => {};
 
-const deleteDriver = (req, res) => {
+const deleteDriver = (req, res, next) => {
   const driver_id = req.params.id;
   const { company_id } = req.user;
 
@@ -99,32 +105,22 @@ const deleteDriver = (req, res) => {
           .del()
           .then(() => res.json({ driver_id }))
           .catch(err => {
-            res.status(500).json({
-              errors: {
-                global: "Driver is assigned to vehicle"
-              }
-            });
+            console.log(err);
+            next(new ApplicationError("Driver is assigned to vehicle", 400));
           });
       } else {
-        res.status(401).json({
-          errors: {
-            global: "unauthorized access"
-          }
-        });
+        next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
-      res.status(500).json({
-        errors: {
-          global: "something went wrong when deleting"
-        }
-      });
+      console.log(err);
+      next(new ApplicationError());
     });
 };
 
 module.exports = {
   registerDriver,
   fetchDrivers,
-  editDriver,
+  // editDriver,
   deleteDriver
 };

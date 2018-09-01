@@ -12,6 +12,7 @@ const mbxClient = require("@mapbox/mapbox-sdk");
 const mbxMatrix = require("@mapbox/mapbox-sdk/services/matrix");
 
 const userAuthentication = require("./middleware/userAuthentication");
+const errorHandler = require("./middleware/errorHandler");
 const authRouter = require("./routes/auth/authRouter");
 const managerRouter = require("./routes/manager/managerRouter");
 const customerRouter = require("./routes/customer/customerRouter");
@@ -32,30 +33,13 @@ app.use("/manager", userAuthentication, managerRouter);
 app.use("/customer", userAuthentication, customerRouter);
 app.use("/driver", userAuthentication, driverRouter);
 
-app.use((req, res, next) => {
+app.use("/*", (req, res, next) => {
   const error = new Error("Not found");
   error.status = 404;
   next(error);
 });
 
-app.use((error, req, res, next) => {
-  // console.log(error);
-
-  // If you call next() with an error after you have started writing the response
-  // the Express default error handler closes the connection and fails the request.
-  // So when you add a custom error handler, you must delegate to the default Express error handler,
-  // when the headers have already been sent to the client
-
-  if (res.headersSent) {
-    return next(error);
-  }
-  res.status(error.status || 500);
-  res.json({
-    errors: {
-      global: error.message
-    }
-  });
-});
+app.use(errorHandler);
 
 app.listen(5000, () => {
   console.log("Server listening on port 5000");

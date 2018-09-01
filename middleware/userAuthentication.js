@@ -1,21 +1,21 @@
 const jwt = require("jsonwebtoken");
+
 const roles = require("../roles");
+const ApplicationError = require("../errors/ApplicationError");
 
 const userAuthentication = (req, res, next) => {
   const header = req.headers.authorization;
   let token;
   // header form:
   // "Bearer sometokenhere"
-  if (header) token = header.split(" ")[1];
+  if (header) [, token] = header.split(" "); // token = header.split(" ")[1];  (prefer-destructuring eslint rule)
 
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
-        res.status(401).json({
-          errors: {
-            global: " Invalid token. Cannot authenticate user"
-          }
-        });
+        next(
+          new ApplicationError("Invalid token. Cannot authenticate user", 401)
+        );
       } else {
         req.user = {
           user_id: decoded.user_id,
@@ -32,11 +32,9 @@ const userAuthentication = (req, res, next) => {
       }
     });
   } else {
-    res.status(401).json({
-      errors: {
-        global: " No token provided. Cannot authenticate user"
-      }
-    });
+    next(
+      new ApplicationError("No token provided. Cannot authenticate user", 401)
+    );
   }
 };
 

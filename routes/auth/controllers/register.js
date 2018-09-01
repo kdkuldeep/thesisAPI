@@ -4,6 +4,8 @@ const db = require("../../../db/knex");
 const roles = require("../../../roles");
 const { toAuthJSON } = require("./signin");
 
+const ApplicationError = require("../../../errors/ApplicationError");
+
 const insertInUsersTable = (
   trx,
   email,
@@ -26,7 +28,7 @@ const insertInUsersTable = (
     .transacting(trx)
     .returning("user_id");
 
-const managerRegistration = (req, res) => {
+const managerRegistration = (req, res, next) => {
   const {
     email,
     username,
@@ -94,13 +96,19 @@ const managerRegistration = (req, res) => {
     .catch(err =>
       // transanction failed, no database changes
       {
+        // TODO: parse err to send better message to client
         console.log(err);
-        res.status(400).json({ errors: { global: "unable to register" } });
+        next(
+          new ApplicationError(
+            "Email/username/company name already exists",
+            409
+          )
+        );
       }
     );
 };
 
-const customerRegistration = (req, res) => {
+const customerRegistration = (req, res, next) => {
   const {
     email,
     username,
@@ -154,10 +162,12 @@ const customerRegistration = (req, res) => {
         })
       })
     )
-    .catch(err =>
+    .catch(err => {
       // transanction failed, no database changes
-      res.status(400).json({ errors: { global: "unable to register" } })
-    );
+      // TODO: parse err to send better message to client
+      console.log(err);
+      next(new ApplicationError("Email/username already exists", 409));
+    });
 };
 
 module.exports = {

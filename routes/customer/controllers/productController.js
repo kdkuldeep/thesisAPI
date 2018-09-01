@@ -2,7 +2,9 @@ const omit = require("lodash/omit");
 
 const db = require("../../../db/knex");
 
-const fetchProducts = (req, res) => {
+const ApplicationError = require("../../../errors/ApplicationError");
+
+const fetchProducts = (req, res, next) => {
   const searchTerm = req.query.term;
   if (req.query.param === "productName") {
     db("products")
@@ -31,6 +33,10 @@ const fetchProducts = (req, res) => {
           )
         );
         res.json({ products });
+      })
+      .catch(err => {
+        console.log(err);
+        next(new ApplicationError());
       });
   } else {
     let matchingColumn;
@@ -45,6 +51,8 @@ const fetchProducts = (req, res) => {
       case "location":
         matchingColumn = "city";
         break;
+      default:
+        next(new ApplicationError("Incorrect query parameters", 400));
     }
 
     db("products")
@@ -73,53 +81,50 @@ const fetchProducts = (req, res) => {
           )
         );
         res.json({ products });
+      })
+      .catch(err => {
+        console.log(err);
+        next(new ApplicationError());
       });
   }
 };
 
-const fetchTypes = (query, options) =>
+const fetchTypes = query =>
   db
     .select("type")
     .from("products")
     .where("type", "ilike", `%${query}%`)
     .distinct("type")
-    .pluck("type")
-    .then(data => {
-      options.types = data;
-    });
+    .pluck("type");
 
-const fetchCompanies = (query, options) =>
+const fetchCompanies = query =>
   db
     .select("company_name")
     .from("companies")
     .where("company_name", "ilike", `%${query}%`)
     .distinct("company_name")
-    .pluck("company_name")
-    .then(data => {
-      options.companies = data;
-    });
+    .pluck("company_name");
 
-const fetchLocations = (query, options) =>
+const fetchLocations = query =>
   db
     .select("city")
     .from("companies")
     .distinct("city")
     .where("city", "ilike", `%${query}%`)
-    .pluck("city")
-    .then(data => {
-      options.locations = data;
-    });
+    .pluck("city");
 
 // FIXME: Find better way to use Promise return value
-const fetchOptions = (req, res) => {
+const fetchOptions = (req, res, next) => {
   const query = req.query.q;
-  const options = { types: [], companies: [], locations: [] };
 
-  Promise.all([
-    fetchTypes(query, options),
-    fetchCompanies(query, options),
-    fetchLocations(query, options)
-  ]).then(() => res.json(options));
+  Promise.all([fetchTypes(query), fetchCompanies(query), fetchLocations(query)])
+    .then(([types, companies, locations]) =>
+      res.json({ types, companies, locations })
+    )
+    .catch(err => {
+      console.log(err);
+      next(new ApplicationError());
+    });
 };
 
 module.exports = {

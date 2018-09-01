@@ -1,8 +1,10 @@
 const db = require("../../../db/knex");
 
+const ApplicationError = require("../../../errors/ApplicationError");
+
 // FIXME: fix the table columns returned
 
-const fetchOrders = (req, res) => {
+const fetchOrders = (req, res, next) => {
   const { user_id } = req.user;
   db.select()
     .from("orders")
@@ -29,10 +31,14 @@ const fetchOrders = (req, res) => {
       return Promise.all(promises).then(orders => {
         res.json({ orders });
       });
+    })
+    .catch(err => {
+      console.log(err);
+      next(new ApplicationError("Cannot fetch orders"));
     });
 };
 
-const addOrder = (req, res) => {
+const addOrder = (req, res, next) => {
   const { basketContent } = req.validatedData;
   const { user_id } = req.user;
 
@@ -73,47 +79,45 @@ const addOrder = (req, res) => {
       const newOrderIds = [];
 
       db.transaction(trx => {
-        const promises = [];
-        for (const company_id in contentByCompany) {
-          // Create promises for all insertions in ORDERS
-          promises.push(
-            db
-              .insert({ company_id, customer_id: user_id })
-              .into("orders")
-              .transacting(trx)
-              .returning("order_id")
-              .then(ids => {
-                const order_id = ids[0];
-                let orderValue = 0;
-                newOrderIds.push(order_id);
+        // Create promises for all insertions in ORDERS
+        const promises = Object.keys(contentByCompany).map(company_id =>
+          db
+            .insert({ company_id, customer_id: user_id })
+            .into("orders")
+            .transacting(trx)
+            .returning("order_id")
+            .then(ids => {
+              const order_id = ids[0];
+              let orderValue = 0;
+              newOrderIds.push(order_id);
 
-                // Create promises for all insertions in ORDER_PRODUCT_REL per order
-                const innerPromises = contentByCompany[company_id].map(
-                  product => {
-                    const { product_id, quantity, price } = product;
-                    orderValue += quantity * price;
-                    return db
-                      .insert({
-                        product_id,
-                        order_id,
-                        quantity
-                      })
-                      .into("order_product_rel")
-                      .transacting(trx);
-                  }
-                );
+              // Create promises for all insertions in ORDER_PRODUCT_REL per order
+              const innerPromises = contentByCompany[company_id].map(
+                product => {
+                  const { product_id, quantity, price } = product;
+                  orderValue += quantity * price;
+                  return db
+                    .insert({
+                      product_id,
+                      order_id,
+                      quantity
+                    })
+                    .into("order_product_rel")
+                    .transacting(trx);
+                }
+              );
 
-                return Promise.all(innerPromises).then(() =>
-                  // When insertions into ORDER_PRODUCT_REL complete
-                  // update the order value in ORDERS
-                  db("orders")
-                    .where({ order_id })
-                    .update({ value: orderValue })
-                    .transacting(trx)
-                );
-              })
-          );
-        }
+              return Promise.all(innerPromises).then(() =>
+                // When insertions into ORDER_PRODUCT_REL complete
+                // update the order value in ORDERS
+                db("orders")
+                  .where({ order_id })
+                  .update({ value: orderValue })
+                  .transacting(trx)
+              );
+            })
+        );
+
         Promise.all(promises)
           .then(trx.commit)
           .catch(trx.rollback);
@@ -157,14 +161,14 @@ const addOrder = (req, res) => {
         .catch(err =>
           // transanction failed, no database changes
           {
-            res
-              .status(500)
-              .json({ errors: { global: "Unable to place order" } });
+            console.log(err);
+            next(new ApplicationError("Unable to place order"));
           }
         );
     })
     .catch(err => {
-      res.status(500).json({ errors: { global: "Unable to place order 2" } });
+      console.log(err);
+      next(new ApplicationError("Unable to place order"));
     });
 };
 

@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const db = require("../../../db/knex");
 const roles = require("../../../roles");
 
+const ApplicationError = require("../../../errors/ApplicationError");
+
 // if user is manager or driver, include company_id in JWT
 const generateJWT = (user_id, email, username, role, company_id) => {
   if (company_id) {
@@ -36,7 +38,7 @@ const toAuthJSON = ({ user_id, email, username, role, company_id }) => ({
   role
 });
 
-const handleSignin = (req, res) => {
+const handleSignin = (req, res, next) => {
   const { email, password } = req.validatedData.credentials;
 
   db.select("*")
@@ -65,21 +67,14 @@ const handleSignin = (req, res) => {
         }
       } else {
         // error for invalid password
-        res.status(400).json({
-          errors: {
-            global: "invalid Credentials (invalid password)"
-          }
-        });
+        next(new ApplicationError("invalid Credentials", 400));
       }
     })
     // error for invalid email
-    .catch(err =>
-      res.status(400).json({
-        errors: {
-          global: "invalid Credentials (email does not exist)"
-        }
-      })
-    );
+    .catch(err => {
+      console.log(err);
+      next(new ApplicationError("invalid Credentials", 400));
+    });
 };
 
 module.exports = {
