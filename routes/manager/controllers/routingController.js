@@ -90,6 +90,7 @@ const solve = (req, res) => {
     );
     console.log(vrpInstance.getNumOfVehicles());
     console.log(vrpInstance.getMatrix());
+    console.log(vrpInstance.solveProblem());
     res.json({ numberOfVehicles, matrix });
   });
 

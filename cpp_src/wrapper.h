@@ -20,7 +20,8 @@ public:
 
 private:
   static Napi::FunctionReference constructor;                   // reference to store the class definition that needs to be exported to JS
-  Napi::Value getNumOfVehicles(const Napi::CallbackInfo &info); //wrapped getNumOfVehicles function
-  Napi::Value getMatrix(const Napi::CallbackInfo &info);        //wrapped getMatrix function
-  VRPSolver *solver;                                            //internal instance of VRPSolver used to perform actual operations
+  Napi::Value getNumOfVehicles(const Napi::CallbackInfo &info); // wrapped getNumOfVehicles function
+  Napi::Value getMatrix(const Napi::CallbackInfo &info);        // wrapped getMatrix function
+  Napi::Value solveProblem(const Napi::CallbackInfo &info);     // wrapped solveProblem function
+  VRPSolver *solver;                                            // internal instance of VRPSolver used to perform actual operations
 };
