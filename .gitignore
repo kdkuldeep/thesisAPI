@@ -9,6 +9,9 @@
 # production
 /build
 
+# or-tools
+/or_tools
+
 # misc
 .DS_Store
 .env
@@ -17,6 +20,7 @@
 .env.test.local
 .env.production.local
 
+/.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

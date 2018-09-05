@@ -36,7 +36,7 @@ const fetchProducts = (req, res, next) => {
       })
       .catch(err => {
         console.log(err);
-        next(new ApplicationError());
+        return next(new ApplicationError());
       });
   } else {
     let matchingColumn;
@@ -52,7 +52,7 @@ const fetchProducts = (req, res, next) => {
         matchingColumn = "city";
         break;
       default:
-        next(new ApplicationError("Incorrect query parameters", 400));
+        return next(new ApplicationError("Incorrect query parameters", 400));
     }
 
     db("products")
@@ -84,7 +84,7 @@ const fetchProducts = (req, res, next) => {
       })
       .catch(err => {
         console.log(err);
-        next(new ApplicationError());
+        return next(new ApplicationError());
       });
   }
 };
@@ -123,7 +123,7 @@ const fetchOptions = (req, res, next) => {
     )
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 

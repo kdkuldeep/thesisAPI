@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "gypfile": true,
   "scripts": {
     "start": "nodemon server.js",
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -20,6 +23,7 @@
     "jsonwebtoken": "^8.3.0",
     "knex": "^0.15.2",
     "lodash": "^4.17.10",
+    "node-addon-api": "^1.4.0",
     "pg": "^7.4.3"
   },
   "devDependencies": {
@@ -31,6 +35,7 @@
     "eslint-plugin-prettier": "^2.6.2",
     "eslint-plugin-security": "^1.4.0",
     "morgan": "^1.9.0",
+    "node-gyp": "^3.8.0",
     "nodemon": "^1.17.1",
     "prettier": "^1.14.2"
   }

@@ -60,7 +60,7 @@ const registerDriver = (req, res, next) => {
       {
         // TODO: parse err to send better message to client
         console.log(err);
-        next(new ApplicationError("Email/username already exists"));
+        return next(new ApplicationError("Email/username already exists"));
       }
     );
 };
@@ -82,7 +82,7 @@ const fetchDrivers = (req, res, next) => {
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError("Cannot fetch drivers"));
+      return next(new ApplicationError("Cannot fetch drivers"));
     });
 };
 
@@ -106,15 +106,17 @@ const deleteDriver = (req, res, next) => {
           .then(() => res.json({ driver_id }))
           .catch(err => {
             console.log(err);
-            next(new ApplicationError("Driver is assigned to vehicle", 400));
+            return next(
+              new ApplicationError("Driver is assigned to vehicle", 400)
+            );
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 

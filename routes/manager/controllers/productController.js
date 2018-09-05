@@ -8,7 +8,7 @@ const fetchProducts = (req, res, next) => {
     .from("products")
     .where({ company_id })
     .then(data => res.json({ products: data }))
-    .catch(next(new ApplicationError()));
+    .catch(() => next(new ApplicationError()));
 };
 
 const addProduct = (req, res, next) => {
@@ -21,7 +21,7 @@ const addProduct = (req, res, next) => {
     .then(ids => res.json({ product_id: ids[0], name, price, type }))
     .catch(err => {
       console.log(err);
-      next(
+      return next(
         new ApplicationError(
           "You already have a product with the same name",
           400
@@ -47,7 +47,7 @@ const editProduct = (req, res, next) => {
           .then(() => res.json({ product_id, name, price, type }))
           .catch(err => {
             console.log(err);
-            next(
+            return next(
               new ApplicationError(
                 "You already have a product with the same name",
                 400
@@ -55,12 +55,12 @@ const editProduct = (req, res, next) => {
             );
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 
@@ -85,12 +85,12 @@ const deleteProduct = (req, res, next) => {
             next(new ApplicationError());
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 

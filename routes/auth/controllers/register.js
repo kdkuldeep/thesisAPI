@@ -98,7 +98,7 @@ const managerRegistration = (req, res, next) => {
       {
         // TODO: parse err to send better message to client
         console.log(err);
-        next(
+        return next(
           new ApplicationError(
             "Email/username/company name already exists",
             409
@@ -166,7 +166,7 @@ const customerRegistration = (req, res, next) => {
       // transanction failed, no database changes
       // TODO: parse err to send better message to client
       console.log(err);
-      next(new ApplicationError("Email/username already exists", 409));
+      return next(new ApplicationError("Email/username already exists", 409));
     });
 };
 

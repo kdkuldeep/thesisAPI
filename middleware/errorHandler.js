@@ -7,10 +7,13 @@ const errorHandler = (error, req, res, next) => {
   // when the headers have already been sent to the client
 
   if (res.headersSent) {
+    console.log(
+      "------------------------------------------------------------------"
+    );
+
     return next(error);
   }
-  res.status(error.status || 500);
-  res.json({
+  res.status(error.status || 500).json({
     errors: {
       global: error.message
     }

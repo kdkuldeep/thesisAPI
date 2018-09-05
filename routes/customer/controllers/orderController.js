@@ -34,7 +34,7 @@ const fetchOrders = (req, res, next) => {
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError("Cannot fetch orders"));
+      return next(new ApplicationError("Cannot fetch orders"));
     });
 };
 
@@ -162,13 +162,13 @@ const addOrder = (req, res, next) => {
           // transanction failed, no database changes
           {
             console.log(err);
-            next(new ApplicationError("Unable to place order"));
+            return next(new ApplicationError("Unable to place order"));
           }
         );
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError("Unable to place order"));
+      return next(new ApplicationError("Unable to place order"));
     });
 };
 

@@ -67,13 +67,13 @@ const handleSignin = (req, res, next) => {
         }
       } else {
         // error for invalid password
-        next(new ApplicationError("invalid Credentials", 400));
+        return next(new ApplicationError("invalid Credentials", 400));
       }
     })
     // error for invalid email
     .catch(err => {
       console.log(err);
-      next(new ApplicationError("invalid Credentials", 400));
+      return next(new ApplicationError("invalid Credentials", 400));
     });
 };
 

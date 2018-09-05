@@ -46,7 +46,7 @@ const fetchOrders = (req, res, next) => {
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 

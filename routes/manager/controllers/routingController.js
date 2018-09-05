@@ -1,5 +1,9 @@
 const db = require("../../../db/knex");
 
+const { matrixService } = require("../../../mapboxServices");
+
+const { VRPSolverWrapper } = require("../../../build/Release/VRPSolver.node");
+
 // https://www.mapbox.com/api-documentation/?language=JavaScript#retrieve-a-matrix
 
 // https://www.mapbox.com/api-documentation/pages/traffic-countries.html
@@ -59,7 +63,7 @@ const getCustomerCoords = company_id =>
 // ]
 // This array is used as input to the Mapbox API Matrix service
 
-const getDurationMatrix = (company_id, matrixService) =>
+const getDurationMatrix = company_id =>
   Promise.all([getDepotCoords(company_id), getCustomerCoords(company_id)]).then(
     ([depotCoords, customerCoords]) => {
       const points = [depotCoords, ...customerCoords];
@@ -71,17 +75,33 @@ const getDurationMatrix = (company_id, matrixService) =>
     }
   );
 
-const getRoutingData = (company_id, matrixService) =>
+const getRoutingData = company_id =>
   Promise.all([
     getAvailableVehicleCount(company_id),
-    getDurationMatrix(company_id, matrixService)
+    getDurationMatrix(company_id)
   ]);
 
-const solve = matrixService => (req, res) => {
+const solve = (req, res) => {
   const { company_id } = req.user;
-  getRoutingData(company_id, matrixService).then(([numberOfVehicles, matrix]) =>
-    res.json({ numberOfVehicles, matrix })
-  );
+  getRoutingData(company_id).then(([numberOfVehicles, matrix]) => {
+    const vrpInstance = new VRPSolverWrapper(
+      parseInt(numberOfVehicles, 10),
+      matrix.durations
+    );
+    console.log(vrpInstance.getNumOfVehicles());
+    console.log(vrpInstance.getMatrix());
+    res.json({ numberOfVehicles, matrix });
+  });
+
+  // const vrpInstance = new VRPSolverWrapper(5, [
+  //   [4, 2, 3],
+  //   [5, 1, 4],
+  //   [6, 1, 6],
+  //   [7, 8, 9]
+  // ]);
+  // console.log(vrpInstance.getNumOfVehicles());
+  // console.log(vrpInstance.getMatrix());
+  // res.json({});
 };
 
 module.exports = {

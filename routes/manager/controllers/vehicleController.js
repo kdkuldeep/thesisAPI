@@ -8,7 +8,7 @@ const fetchVehicles = (req, res, next) => {
     .from("vehicles")
     .where({ company_id })
     .then(data => res.json({ vehicles: data }))
-    .catch(next(new ApplicationError()));
+    .catch(() => next(new ApplicationError()));
 };
 
 const addVehicle = (req, res, next) => {
@@ -28,7 +28,7 @@ const addVehicle = (req, res, next) => {
     )
     .catch(err => {
       console.log(err);
-      next(
+      return next(
         new ApplicationError(
           "You already have a vehicle with the same licence plate",
           400
@@ -57,7 +57,7 @@ const editVehicle = (req, res, next) => {
           )
           .catch(err => {
             console.log(err);
-            next(
+            return next(
               new ApplicationError(
                 "Already have vehicle with the same licence plate",
                 400
@@ -65,12 +65,12 @@ const editVehicle = (req, res, next) => {
             );
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 
@@ -92,15 +92,15 @@ const deleteVehicle = (req, res, next) => {
           .then(() => res.json({ vehicle_id }))
           .catch(err => {
             console.log(err);
-            next(new ApplicationError());
+            return next(new ApplicationError());
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 
@@ -124,15 +124,15 @@ const assignDriver = (req, res, next) => {
           )
           .catch(err => {
             console.log(err);
-            next(new ApplicationError());
+            return next(new ApplicationError());
           });
       } else {
-        next(new ApplicationError("Unauthorized access", 403));
+        return next(new ApplicationError("Unauthorized access", 403));
       }
     })
     .catch(err => {
       console.log(err);
-      next(new ApplicationError());
+      return next(new ApplicationError());
     });
 };
 
