@@ -4,6 +4,6 @@
 
 2. Go to the projects root folder
 
-3. Create database table by running:
+3. Create database tables by running:
 
    `knex migrate:latest`
