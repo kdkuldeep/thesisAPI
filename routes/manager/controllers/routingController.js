@@ -11,17 +11,6 @@ const { VRPSolverWrapper } = require("../../../build/Release/VRPSolver.node");
 // TODO:
 // - Make multiple calls to matrix service if point count > 25 and update data accordingly
 
-// Create an Object that will be passed to the C++ Routing Solver
-// Required Data (object type):
-
-//  {
-//    numberOfVehicles: ... ,
-//    matrix: [],
-//    ...
-// }
-
-// FIXME: Find better way to use Promise return value !!FOUND__CHECK ALL
-
 const getAvailableVehicleCount = company_id =>
   db
     .select()
