@@ -6,49 +6,86 @@ Napi::Value solverWrapped(const Napi::CallbackInfo &info)
   Napi::Env env = info.Env();
 
   // Check for correct arguments passed from JS
-  if (info.Length() < 2)
+  if (info.Length() < 4)
   {
-    Napi::TypeError::New(env, "Wrong number of arguments").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Wrong number of arguments.").ThrowAsJavaScriptException();
     return env.Null();
   }
 
-  if (!info[0].IsNumber())
+  if (!info[0].IsArray())
   {
-    Napi::TypeError::New(env, "Expected int as first argument (number of vehicles)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Expected array as first argument (vehicle capacities)").ThrowAsJavaScriptException();
     return env.Null();
   }
 
   if (!info[1].IsArray())
   {
-    Napi::TypeError::New(env, "Expected 2d array as second argument (cost matrix)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Expected array as second argument (order volumes)").ThrowAsJavaScriptException();
     return env.Null();
   }
 
-  // Get number of vehicles from first argument
-  int numberOfVehicles = info[0].As<Napi::Number>().Int32Value();
-
-  // Get cost matrix from second argument
-  std::vector<std::vector<int64>> durationMatrix;
-
-  Napi::Array matrix = info[1].As<Napi::Array>();
-  uint32_t numRows = matrix.Length();
-  uint32_t rowIndex;
-  for (rowIndex = 0; rowIndex < numRows; rowIndex++)
+  if (!info[2].IsArray())
   {
-    std::vector<int64> rowDurations;
-    Napi::Array row = matrix.Get(rowIndex).As<Napi::Array>();
-    uint32_t numColumns = row.Length();
-    uint32_t columnIndex;
-    for (columnIndex = 0; columnIndex < numColumns; columnIndex++)
+    Napi::TypeError::New(env, "Expected 2d array as third argument (product demands)").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  if (!info[3].IsArray())
+  {
+    Napi::TypeError::New(env, "Expected 2d array as fourth argument (duration matrix)").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  // Get vehicle capacities from first argument
+  std::vector<int64> capacities;
+  Napi::Array capacitiesInput = info[0].As<Napi::Array>();
+  for (uint32_t rowIndex = 0; rowIndex < capacitiesInput.Length(); rowIndex++)
+  {
+    int64 capacitiesValue = capacitiesInput.Get(rowIndex).As<Napi::Number>().Int64Value();
+    capacities.push_back(capacitiesValue);
+  }
+
+  // Get order volumes from second argument
+  std::vector<int64> volumes;
+  Napi::Array volumesInput = info[1].As<Napi::Array>();
+  for (uint32_t rowIndex = 0; rowIndex < volumesInput.Length(); rowIndex++)
+  {
+    int64 volumesValue = volumesInput.Get(rowIndex).As<Napi::Number>().Int64Value();
+    volumes.push_back(volumesValue);
+  }
+
+  // Get product demands from third argument
+  std::vector<std::vector<int64>> demands;
+  Napi::Array demandsInput = info[3].As<Napi::Array>();
+  for (uint32_t rowIndex = 0; rowIndex < demandsInput.Length(); rowIndex++)
+  {
+    std::vector<int64> demandsRow;
+    Napi::Array demandsInputRow = demandsInput.Get(rowIndex).As<Napi::Array>();
+    for (int32_t columnIndex = 0; columnIndex < demandsInputRow.Length(); columnIndex++)
     {
-      int64 duration = row.Get(columnIndex).As<Napi::Number>().Int64Value();
-      rowDurations.push_back(duration);
+      int64 demandsValue = demandsInputRow.Get(columnIndex).As<Napi::Number>().Int64Value();
+      demandsRow.push_back(demandsValue);
     }
-    durationMatrix.push_back(rowDurations);
+    demands.push_back(demandsRow);
+  }
+
+  // Get duration matrix from fourth argument
+  std::vector<std::vector<int64>> durations;
+  Napi::Array durationsInput = info[3].As<Napi::Array>();
+  for (uint32_t rowIndex = 0; rowIndex < durationsInput.Length(); rowIndex++)
+  {
+    std::vector<int64> durationsRow;
+    Napi::Array durationsInputRow = durationsInput.Get(rowIndex).As<Napi::Array>();
+    for (int32_t columnIndex = 0; columnIndex < durationsInputRow.Length(); columnIndex++)
+    {
+      int64 durationsValue = durationsInputRow.Get(columnIndex).As<Napi::Number>().Int64Value();
+      durationsRow.push_back(durationsValue);
+    }
+    durations.push_back(durationsRow);
   }
 
   // call the actual function and return result to JS
-  std::string result = solver(numberOfVehicles, durationMatrix);
+  std::string result = solver(capacities, volumes, demands, durations);
 
   return Napi::String::New(env, result);
 }

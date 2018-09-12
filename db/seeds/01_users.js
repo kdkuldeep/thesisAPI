@@ -10,8 +10,10 @@ const roles = require("../../roles");
 
 const RADIUS_CUST = 2000; //  Radius in meters
 const RADIUS_COMP = 1000; //  Radius in meters
-const IOANNINA_CENTER = { latitude: 39.665, longitude: 20.8537 };
 
+const IOANNINA_CENTER = { latitude: 39.665, longitude: 20.8537 };
+const ATHENS_CENTER = { latitude: 37.983972, longitude: 23.727806 };
+const COORDS_CENTER = ATHENS_CENTER;
 const NUMBER_OF_COMPANIES = 2;
 const DRIVERS_PER_COMPANY = 6;
 const NUMBER_OF_CUSTOMERS = 20;
@@ -95,7 +97,7 @@ const insertUser = (knex, roleString, roleNo, counter) =>
     .returning("user_id");
 
 const insertCompany = (knex, counter) =>
-  generateLocationData(IOANNINA_CENTER, RADIUS_COMP).then(location =>
+  generateLocationData(COORDS_CENTER, RADIUS_COMP).then(location =>
     knex("companies")
       .insert({
         company_name: `company${counter}`,
@@ -103,8 +105,8 @@ const insertCompany = (knex, counter) =>
         city: location.city,
         street: location.street,
         number: location.number,
-        latitude: location.latitude,
-        longitude: location.longitude
+        latitude: parseFloat(location.latitude),
+        longitude: parseFloat(location.longitude)
       })
       .returning("company_id")
   );
@@ -131,7 +133,7 @@ const insertDriver = (knex, companyData, outerCounter, innerCounter) =>
 const insertCustomer = (knex, counter) =>
   Promise.all([
     insertUser(knex, "customer", roles.CUSTOMER, counter),
-    generateLocationData(IOANNINA_CENTER, RADIUS_CUST)
+    generateLocationData(COORDS_CENTER, RADIUS_CUST)
   ]).then(([userData, location]) =>
     knex("customers")
       .insert({
@@ -140,8 +142,8 @@ const insertCustomer = (knex, counter) =>
         city: location.city,
         street: location.street,
         number: location.number,
-        latitude: location.latitude,
-        longitude: location.longitude
+        latitude: parseFloat(location.latitude),
+        longitude: parseFloat(location.longitude)
       })
       .returning("user_id")
   );

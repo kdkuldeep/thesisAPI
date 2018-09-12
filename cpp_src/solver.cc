@@ -47,14 +47,17 @@ std::string getRoutes(const RoutingModel &routing, const operations_research::As
   return plan_output;
 }
 
-std::string solver(int numberOfVehicles, std::vector<std::vector<int64>> durationMatrix)
+std::string solver(std::vector<int64> capacities,
+                   std::vector<int64> volumes,
+                   std::vector<std::vector<int64>> demands,
+                   std::vector<std::vector<int64>> durations)
 {
-  DataModel data(numberOfVehicles, durationMatrix);
+  DataModel data(capacities.size(), volumes.size(), capacities, volumes, demands, durations);
 
   // RoutingModel Constructor
   // Arguments: int nodes, int vehicles, NodeIndex depot
   // Create a routing model for the given problem size
-  RoutingModel routing(durationMatrix.size(), numberOfVehicles, RoutingModel::NodeIndex(0));
+  RoutingModel routing(data.numberOfOrders(), data.numberOfVehicles(), RoutingModel::NodeIndex(0));
 
   // SetArcCostEvaluatorOfAllVehicles
   // Return type: void
@@ -65,22 +68,27 @@ std::string solver(int numberOfVehicles, std::vector<std::vector<int64>> duratio
   // Takes ownership of the callback 'evaluator'.
   routing.SetArcCostEvaluatorOfAllVehicles(NewPermanentCallback(&data, &DataModel::getArcCost));
 
-  //
+  // Add a dimension to accumulate trip durations
+  // Try to minimize the max trip duration difference among vehicles.
+  // It doesn't mean the standard deviation is minimized
   int maximum_duration = 28800; // 8 hours
-
   routing.AddDimension(NewPermanentCallback(&data, &DataModel::getArcCost),
                        0,                // null slack
                        maximum_duration, // maximum trip duration per vehicle
                        true,             // start cumul to zero
                        "Duration");
-
-  // Try to minimize the max trip duration difference among vehicles.
-  // It doesn't mean the standard deviation is minimized
-  // Sets a cost proportional to the *global* dimension span, that is the difference 
-  // between the largest value of route end cumul variables and the smallest value of route 
-  // start cumul variables. In other words: 
+  // Sets a cost proportional to the *global* dimension span, that is the difference
+  // between the largest value of route end cumul variables and the smallest value of route
+  // start cumul variables. In other words:
   // global_span_cost = coefficient * (Max(dimension end value) - Min(dimension start value)).
   routing.GetMutableDimension("Duration")->SetGlobalSpanCostCoefficient(100);
+
+  // Add capacity constraints
+  routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &DataModel::getOrderVolume),
+                                          0,
+                                          data.capacities(),
+                                          true,
+                                          "Capacity");
 
   // Configure routing model parameters
   RoutingSearchParameters parameters = RoutingModel::DefaultSearchParameters();
