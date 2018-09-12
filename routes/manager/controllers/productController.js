@@ -4,7 +4,7 @@ const ApplicationError = require("../../../errors/ApplicationError");
 
 const fetchProducts = (req, res, next) => {
   const { company_id } = req.user;
-  db.select("product_id", "name", "price", "type")
+  db.select("product_id", "name", "price", "type", "volume")
     .from("products")
     .where({ company_id })
     .then(data => res.json({ products: data }))
@@ -12,13 +12,13 @@ const fetchProducts = (req, res, next) => {
 };
 
 const addProduct = (req, res, next) => {
-  const { name, price, type } = req.validatedData.data;
+  const { name, price, type, volume } = req.validatedData.data;
   const { company_id } = req.user;
 
-  db.insert({ company_id, name, price, type })
+  db.insert({ company_id, name, price, type, volume })
     .into("products")
     .returning("product_id")
-    .then(ids => res.json({ product_id: ids[0], name, price, type }))
+    .then(ids => res.json({ product_id: ids[0], name, price, type, volume }))
     .catch(err => {
       console.log(err);
       return next(
@@ -31,7 +31,7 @@ const addProduct = (req, res, next) => {
 };
 
 const editProduct = (req, res, next) => {
-  const { product_id, name, price, type } = req.validatedData.data;
+  const { product_id, name, price, type, volume } = req.validatedData.data;
   const { company_id } = req.user;
 
   db.select("company_id")
@@ -43,8 +43,8 @@ const editProduct = (req, res, next) => {
       if (company_id === productCompanyId) {
         db("products")
           .where({ product_id })
-          .update({ name, price, type })
-          .then(() => res.json({ product_id, name, price, type }))
+          .update({ name, price, type, volume })
+          .then(() => res.json({ product_id, name, price, type, volume }))
           .catch(err => {
             console.log(err);
             return next(

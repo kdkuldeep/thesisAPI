@@ -76,6 +76,7 @@ const generateLocationData = (centerCoords, radious) => {
       location.latitude = coords.lat;
       location.longitude = coords.lng;
       // console.log(location);
+      if (!location.street) location.street = "Unknown"; // FIXME:
       if (!location.number) location.number = "1"; // FIXME:
       return location;
     });

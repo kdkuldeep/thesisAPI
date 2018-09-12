@@ -39,21 +39,23 @@ const insertOrder = (knex, company_id, customer_id) =>
     .then(orderData =>
       getRandomProducts(knex, company_id).then(selection =>
         Promise.all(
-          selection.map(({ product_id, price, quantity }) =>
+          selection.map(({ product_id, price, volume, quantity }) =>
             knex("order_product_rel")
               .insert({
                 product_id,
                 order_id: orderData[0],
                 quantity
               })
-              .then(() => price * quantity)
+              .then(() => [price * quantity, volume * quantity])
           )
         )
-          .then(productTotals => productTotals.reduce((a, b) => a + b, 0))
-          .then(orderValue =>
+          .then(productTotals =>
+            productTotals.reduce((a, b) => [a[0] + b[0], a[1] + b[1]], [0, 0])
+          )
+          .then(([orderValue, orderVolume]) =>
             knex("orders")
               .where({ order_id: orderData[0] })
-              .update({ value: orderValue })
+              .update({ value: orderValue, total_volume: orderVolume })
           )
       )
     );

@@ -1,13 +1,18 @@
 const faker = require("faker");
 
 const PRODUCTS_PER_COMPANY = 10;
+const MIN_PRICE = 0.1;
+const MAX_PRICE = 200.0;
+const MIN_VOLUME = 50;
+const MAX_VOLUME = 10000;
 
 const insertProduct = (knex, company_id) =>
   knex("products").insert({
     name: faker.commerce.productName(),
-    price: parseFloat(faker.commerce.price(0.1, 200.0, 2)),
+    price: parseFloat(faker.commerce.price(MIN_PRICE, MAX_PRICE, 2)),
     company_id,
-    type: faker.commerce.department()
+    type: faker.commerce.department(),
+    volume: faker.random.number({ min: MIN_VOLUME, max: MAX_VOLUME })
   });
 
 exports.seed = knex =>

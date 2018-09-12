@@ -13,6 +13,10 @@ exports.up = knex =>
       .index();
     table.float("price", 8, 2).notNullable();
     table.string("type", lengths.PRODUCT_TYPE).notNullable();
+    table
+      .integer("volume")
+      .unsigned()
+      .notNullable();
     table.unique(["company_id", "name"]);
   });
 

@@ -16,34 +16,36 @@ const fetchOrders = (req, res, next) => {
     "number",
     "value",
     "created_at",
-    "vehicle_id"
+    "vehicle_id",
+    "eta",
+    "latitude",
+    "longitude"
   )
     .from("orders")
     .where({ company_id })
     .innerJoin("customers", "orders.customer_id", "customers.user_id")
     .innerJoin("users", "orders.customer_id", "users.user_id")
-    .then(orders => {
-      const promises = orders.map(order => {
-        const { order_id } = order;
-        return db
-          .select("products.product_id", "name", "type", "price", "quantity")
-          .from("products")
-          .innerJoin(
-            "order_product_rel",
-            "products.product_id",
-            "order_product_rel.product_id"
-          )
-          .where({ order_id })
-          .then(orderedProducts => ({
-            ...order,
-            products: orderedProducts
-          }));
-      });
-
-      return Promise.all(promises).then(orders => {
-        res.json({ orders });
-      });
+    .map(order => {
+      const { order_id } = order;
+      return db
+        .select("products.product_id", "name", "type", "price", "quantity")
+        .from("products")
+        .innerJoin(
+          "order_product_rel",
+          "products.product_id",
+          "order_product_rel.product_id"
+        )
+        .where({ order_id })
+        .then(orderedProducts => ({
+          ...order,
+          products: orderedProducts
+        }));
     })
+    .then(promises => Promise.all(promises))
+    .then(orders => {
+      res.json({ orders });
+    })
+
     .catch(err => {
       console.log(err);
       return next(new ApplicationError());

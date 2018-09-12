@@ -1,5 +1,8 @@
 const faker = require("faker");
 
+const MIN_CAPACITY = 500000;
+const MAX_CAPACITY = 1000000;
+
 const generateLicencePlate = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -17,7 +20,7 @@ const insertVehicle = (knex, company_id, driver_id) =>
     company_id,
     driver_id,
     licence_plate: generateLicencePlate(),
-    capacity: faker.random.number({ min: 50, max: 200 })
+    capacity: faker.random.number({ min: MIN_CAPACITY, max: MAX_CAPACITY })
   });
 
 exports.seed = knex =>

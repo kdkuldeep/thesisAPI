@@ -4,9 +4,9 @@
         "cflags!": [ "-fno-exceptions" ],
         "cflags_cc!": [ "-fno-exceptions" ],
         "sources": [
-            "cpp_src/main.cc",
-            "cpp_src/vrpSolver.cc",
-            "cpp_src/wrapper.cc",
+            "cpp_src/addon.cc",
+            "cpp_src/solver.cc",
+            "cpp_src/DataModel.cc",
         ],
         'include_dirs': [
             "<!@(node -p \"require('node-addon-api').include\")",

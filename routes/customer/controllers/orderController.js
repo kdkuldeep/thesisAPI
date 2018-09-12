@@ -89,13 +89,15 @@ const addOrder = (req, res, next) => {
             .then(ids => {
               const order_id = ids[0];
               let orderValue = 0;
+              let orderVolume = 0;
               newOrderIds.push(order_id);
 
               // Create promises for all insertions in ORDER_PRODUCT_REL per order
               const innerPromises = contentByCompany[company_id].map(
                 product => {
-                  const { product_id, quantity, price } = product;
+                  const { product_id, quantity, price, volume } = product;
                   orderValue += quantity * price;
+                  orderVolume += quantity * volume;  
                   return db
                     .insert({
                       product_id,
@@ -112,7 +114,7 @@ const addOrder = (req, res, next) => {
                 // update the order value in ORDERS
                 db("orders")
                   .where({ order_id })
-                  .update({ value: orderValue })
+                  .update({ value: orderValue, total_volume: orderVolume })
                   .transacting(trx)
               );
             })

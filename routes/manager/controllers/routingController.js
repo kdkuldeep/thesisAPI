@@ -2,8 +2,9 @@ const db = require("../../../db/knex");
 
 const { matrixService } = require("../../../mapboxServices");
 
-const { VRPSolverWrapper } = require("../../../build/Release/VRPSolver.node");
+const VRPSolver = require("../../../build/Release/VRPSolver.node");
 
+const { TEST_MATRIX } = require("./TEST_MATRIX");
 // https://www.mapbox.com/api-documentation/?language=JavaScript#retrieve-a-matrix
 
 // https://www.mapbox.com/api-documentation/pages/traffic-countries.html
@@ -33,11 +34,11 @@ const getDepotCoords = company_id =>
 
 const getCustomerCoords = company_id =>
   db
-    .select("latitude", "longitude")
-    .from("orders")
+    .table("orders")
     .where({ company_id })
     .innerJoin("customers", "orders.customer_id", "customers.user_id")
     .distinct("orders.customer_id")
+    .select("latitude", "longitude")
     .then(data =>
       data.map(order => ({
         coordinates: [parseFloat(order.longitude), parseFloat(order.latitude)]
@@ -56,7 +57,7 @@ const getDurationMatrix = company_id =>
   Promise.all([getDepotCoords(company_id), getCustomerCoords(company_id)]).then(
     ([depotCoords, customerCoords]) => {
       const points = [depotCoords, ...customerCoords];
-      console.log(points);
+      // console.log(points);
       return matrixService
         .getMatrix({ points, profile: "driving" })
         .send()
@@ -72,26 +73,13 @@ const getRoutingData = company_id =>
 
 const solve = (req, res) => {
   const { company_id } = req.user;
-  getRoutingData(company_id).then(([numberOfVehicles, matrix]) => {
-    const vrpInstance = new VRPSolverWrapper(
-      parseInt(numberOfVehicles, 10),
-      matrix.durations
-    );
-    console.log(vrpInstance.getNumOfVehicles());
-    console.log(vrpInstance.getMatrix());
-    console.log(vrpInstance.solveProblem());
-    res.json({ numberOfVehicles, matrix });
+  // getRoutingData(company_id).then(([numberOfVehicles, matrix]) => {
+  //     console.log(VRPSolver.solve(parseInt(numberOfVehicles, 10), matrix.durations));
+  // });
+  getAvailableVehicleCount(company_id).then(numberOfVehicles => {
+    console.log(VRPSolver.solve(parseInt(numberOfVehicles, 10), TEST_MATRIX));
+    res.json({ TEST_MATRIX });
   });
-
-  // const vrpInstance = new VRPSolverWrapper(5, [
-  //   [4, 2, 3],
-  //   [5, 1, 4],
-  //   [6, 1, 6],
-  //   [7, 8, 9]
-  // ]);
-  // console.log(vrpInstance.getNumOfVehicles());
-  // console.log(vrpInstance.getMatrix());
-  // res.json({});
 };
 
 module.exports = {

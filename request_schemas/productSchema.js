@@ -15,6 +15,10 @@ module.exports = {
           .required(),
         price: Joi.number()
           .min(0.01)
+          .required(),
+        volume: Joi.number()
+          .integer()
+          .min(1)
           .required()
       })
       .required()
@@ -36,6 +40,10 @@ module.exports = {
           .required(),
         price: Joi.number()
           .min(0.01)
+          .required(),
+        volume: Joi.number()
+          .integer()
+          .min(1)
           .required()
       })
       .required()
