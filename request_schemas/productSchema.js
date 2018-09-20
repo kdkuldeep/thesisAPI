@@ -6,11 +6,9 @@ module.exports = {
     data: Joi.object()
       .keys({
         name: Joi.string()
-          .alphanum()
           .max(lengths.PRODUCT_NAME)
           .required(),
         type: Joi.string()
-          .alphanum()
           .max(lengths.PRODUCT_TYPE)
           .required(),
         price: Joi.number()
@@ -31,11 +29,9 @@ module.exports = {
           .min(1)
           .required(),
         name: Joi.string()
-          .alphanum()
           .max(lengths.PRODUCT_NAME)
           .required(),
         type: Joi.string()
-          .alphanum()
           .max(lengths.PRODUCT_TYPE)
           .required(),
         price: Joi.number()

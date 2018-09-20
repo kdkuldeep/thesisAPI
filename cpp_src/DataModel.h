@@ -21,7 +21,7 @@ public:
             std::vector<std::vector<int64>> durations);
   int numberOfVehicles();
   int numberOfOrders();
-  std::vector<int64> capacities();
+  std::vector<int64> capacities() const;
   std::vector<int64> volumes();
   std::vector<std::vector<int64>> demands();
   std::vector<std::vector<int64>> durations();

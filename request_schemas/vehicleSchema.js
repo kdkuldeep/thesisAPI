@@ -45,6 +45,7 @@ module.exports = {
           .integer()
           .min(1)
           .required()
+          .allow(null)
       })
       .required()
   })

@@ -89,7 +89,11 @@ const managerRegistration = (req, res, next) => {
           email,
           username,
           company_id: managerData[0].company_id,
-          role: roles.MANAGER
+          role: roles.MANAGER,
+          coordinates: {
+            latitude: coords.lat,
+            longitude: coords.lng
+          }
         })
       })
     )
@@ -158,7 +162,11 @@ const customerRegistration = (req, res, next) => {
           user_id: customerData[0],
           email,
           username,
-          role: roles.CUSTOMER
+          role: roles.CUSTOMER,
+          coordinates: {
+            latitude: coords.lat,
+            longitude: coords.lng
+          }
         })
       })
     )

@@ -23,7 +23,7 @@ int DataModel::numberOfOrders()
   return _numberOfOrders;
 }
 
-std::vector<int64> DataModel::capacities()
+std::vector<int64> DataModel::capacities() const
 {
   return _capacities;
 }

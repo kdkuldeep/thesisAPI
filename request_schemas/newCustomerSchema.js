@@ -22,15 +22,15 @@ module.exports = Joi.object().keys({
         .max(lengths.LAST_NAME)
         .required(),
       country: Joi.string()
-        .regex(/^[a-zA-Z]+$/)
+        .regex(/^[a-zA-Z\s]+$/)
         .max(lengths.COUNTRY_NAME)
         .required(),
       city: Joi.string()
-        .regex(/^[a-zA-Z]+$/)
+        .regex(/^[a-zA-Z\s]+$/)
         .max(lengths.CITY_NAME)
         .required(),
       street: Joi.string()
-        .regex(/^[a-zA-Z]+$/)
+        .regex(/^[a-zA-Z\s]+$/)
         .max(lengths.STREET_NAME)
         .required(),
       number: Joi.string()

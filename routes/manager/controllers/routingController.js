@@ -124,15 +124,11 @@ const solve = (req, res) => {
       console.log(demands);
       // console.log("\nDuration matrix");
       // console.log(durations);
-      console.log(VRPSolver.solve(capacities, volumes, demands, durations));
-      return durations;
-    })
-    .then(durations => res.json(durations));
-
-  // getAvailableVehicleCount(company_id).then(numberOfVehicles => {
-  //   console.log(VRPSolver.solve(parseInt(numberOfVehicles, 10), TEST_MATRIX));
-  //   res.json({ TEST_MATRIX });
-  // });
+      VRPSolver.solve(capacities, volumes, demands, durations).then(results => {
+        console.log(results);
+        res.json(durations);
+      });
+    });
 };
 
 module.exports = {

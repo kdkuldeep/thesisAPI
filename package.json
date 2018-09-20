@@ -23,22 +23,22 @@
     "joi": "^13.6.0",
     "jsonwebtoken": "^8.3.0",
     "knex": "^0.15.2",
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.11",
     "node-addon-api": "^1.4.0",
     "pg": "^7.4.3"
   },
   "devDependencies": {
     "babel-eslint": "^9.0.0",
-    "eslint": "^5.4.0",
+    "eslint": "^5.5.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-config-prettier": "^3.0.1",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-prettier": "^2.6.2",
     "eslint-plugin-security": "^1.4.0",
     "faker": "^4.1.0",
-    "morgan": "^1.9.0",
+    "morgan": "^1.9.1",
     "node-gyp": "^3.8.0",
-    "nodemon": "^1.17.1",
+    "nodemon": "^1.18.4",
     "prettier": "^1.14.2"
   }
 }

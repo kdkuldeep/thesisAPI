@@ -2,35 +2,46 @@ const db = require("../../../db/knex");
 
 const ApplicationError = require("../../../errors/ApplicationError");
 
-// FIXME: fix the table columns returned
-
 const fetchOrders = (req, res, next) => {
   const { user_id } = req.user;
   db.select()
     .from("orders")
     .where("customer_id", user_id)
     .innerJoin("companies", "orders.company_id", "companies.company_id")
+    .map(order => {
+      const {
+        order_id,
+        company_name,
+        value,
+        created_at,
+        eta,
+        country,
+        city,
+        street,
+        number
+      } = order;
+      const address = `${country}, ${city}, ${street} ${number}`;
+      return db
+        .select("products.product_id", "name", "price", "type", "quantity")
+        .from("products")
+        .innerJoin(
+          "order_product_rel",
+          "products.product_id",
+          "order_product_rel.product_id"
+        )
+        .where({ order_id })
+        .then(orderedProducts => ({
+          order_id,
+          company_name,
+          value,
+          created_at,
+          eta,
+          address,
+          products: orderedProducts
+        }));
+    })
     .then(orders => {
-      const promises = orders.map(order => {
-        const { order_id } = order;
-        return db
-          .select()
-          .from("products")
-          .innerJoin(
-            "order_product_rel",
-            "products.product_id",
-            "order_product_rel.product_id"
-          )
-          .where({ order_id })
-          .then(orderedProducts => ({
-            ...order,
-            products: orderedProducts
-          }));
-      });
-
-      return Promise.all(promises).then(orders => {
-        res.json({ orders });
-      });
+      res.json({ orders });
     })
     .catch(err => {
       console.log(err);
@@ -63,12 +74,13 @@ const addOrder = (req, res, next) => {
     .then(products => {
       const contentByCompany = {};
       products.forEach(product => {
-        const { company_id, product_id, price } = product;
+        const { company_id, product_id, price, volume } = product;
         if (typeof contentByCompany[company_id] === "undefined")
           contentByCompany[company_id] = [];
         contentByCompany[company_id].push({
           product_id,
           price,
+          volume,
           quantity: basketContent[product_id]
         });
       });
@@ -97,7 +109,7 @@ const addOrder = (req, res, next) => {
                 product => {
                   const { product_id, quantity, price, volume } = product;
                   orderValue += quantity * price;
-                  orderVolume += quantity * volume;  
+                  orderVolume += quantity * volume;
                   return db
                     .insert({
                       product_id,
@@ -154,8 +166,8 @@ const addOrder = (req, res, next) => {
                     }));
                 });
 
-                return Promise.all(promises).then(orders => {
-                  res.json({ orderFragments: orders });
+                return Promise.all(promises).then(orderFragments => {
+                  res.json({ orderFragments });
                 });
               });
           }

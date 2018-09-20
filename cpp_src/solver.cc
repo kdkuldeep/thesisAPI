@@ -15,16 +15,31 @@ using operations_research::StringPrintf;
 namespace
 {
 
-std::string getRoutes(const RoutingModel &routing, const operations_research::Assignment &plan)
+std::vector<std::vector<int>> GetRoutes(const DataModel &data,
+                                        const RoutingModel &routing,
+                                        const operations_research::Assignment &plan,
+                                        const RoutingDimension &capacity_dimension)
 {
+  // 2d vector to hold routes for each vehicle
+  std::vector<std::vector<int>> routes;
+
   // Display plan cost.
-  std::string plan_output = StringPrintf("\nCost %lld\n", plan.ObjectiveValue());
+  std::string plan_output = StringPrintf("\nTotal Cost: %lld\n", plan.ObjectiveValue());
 
   // Display actual output for each vehicle.
   for (int vehicle_id = 0; vehicle_id < routing.vehicles();
        ++vehicle_id)
   {
-    StringAppendF(&plan_output, "Route for vehicle %d: ", vehicle_id);
+    // the route for vehicle indexed by {vehicle_id}
+    std::vector<int> vehicle_route;
+
+    StringAppendF(&plan_output, "\n------  Vehicle %d  ------\n", vehicle_id);
+    operations_research::IntVar *const load_var =
+        capacity_dimension.CumulVar(routing.End(vehicle_id));
+    StringAppendF(&plan_output, "Capacity:\t%lld mL\n", data.capacities()[vehicle_id]);
+    StringAppendF(&plan_output, "Load:\t\t%lld mL\n", plan.Value(load_var));
+    StringAppendF(&plan_output, "Free:\t\t%lld mL\n", data.capacities()[vehicle_id] - plan.Value(load_var));
+    StringAppendF(&plan_output, "Route: ");
 
     int64 index = routing.Start(vehicle_id);
     if (routing.IsEnd(plan.Value(routing.NextVar(index))))
@@ -35,24 +50,37 @@ std::string getRoutes(const RoutingModel &routing, const operations_research::As
     {
       while (true)
       {
-        StringAppendF(&plan_output, "%lld  -> ", routing.IndexToNode(index).value());
+        vehicle_route.push_back(routing.IndexToNode(index).value());
+
+        StringAppendF(&plan_output, "%lld",
+                      routing.IndexToNode(index).value());
         if (routing.IsEnd(index))
+        {
           break;
+        }
+        StringAppendF(&plan_output, " -> ");
         index = plan.Value(routing.NextVar(index));
       }
+      routes.push_back(vehicle_route);
+
       plan_output += "\n";
     }
   }
   // LOG(INFO) << plan_output;
-  return plan_output;
+  return routes;
 }
 
-std::string solver(std::vector<int64> capacities,
-                   std::vector<int64> volumes,
-                   std::vector<std::vector<int64>> demands,
-                   std::vector<std::vector<int64>> durations)
+std::vector<std::vector<int>> solver(std::vector<int64> capacities,
+                                     std::vector<int64> volumes,
+                                     std::vector<std::vector<int64>> demands,
+                                     std::vector<std::vector<int64>> durations)
 {
   DataModel data(capacities.size(), volumes.size(), capacities, volumes, demands, durations);
+
+  const char *kDuration = "Duration";
+  const char *kCapacity = "Capacity";
+  const int kTimeLimit = 20000;       // metaheuristic time limit (milliseconds) (sec*1000)
+  const int kMaxTripDuration = 28800; // maximum trip duration per vehicle (8 hours)
 
   // RoutingModel Constructor
   // Arguments: int nodes, int vehicles, NodeIndex depot
@@ -71,35 +99,34 @@ std::string solver(std::vector<int64> capacities,
   // Add a dimension to accumulate trip durations
   // Try to minimize the max trip duration difference among vehicles.
   // It doesn't mean the standard deviation is minimized
-  int maximum_duration = 28800; // 8 hours
   routing.AddDimension(NewPermanentCallback(&data, &DataModel::getArcCost),
-                       0,                // null slack
-                       maximum_duration, // maximum trip duration per vehicle
-                       true,             // start cumul to zero
-                       "Duration");
+                       0, // null slack
+                       kMaxTripDuration,
+                       true, // start cumul to zero
+                       kDuration);
   // Sets a cost proportional to the *global* dimension span, that is the difference
   // between the largest value of route end cumul variables and the smallest value of route
   // start cumul variables. In other words:
   // global_span_cost = coefficient * (Max(dimension end value) - Min(dimension start value)).
-  routing.GetMutableDimension("Duration")->SetGlobalSpanCostCoefficient(100);
+  routing.GetMutableDimension(kDuration)->SetGlobalSpanCostCoefficient(100);
 
-  // Add capacity constraints
+  // Add Capacity Constraints
   routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &DataModel::getOrderVolume),
                                           0,
-                                          data.capacities(),
+                                          data.capacities(), // Maximum capacities per vehicle
                                           true,
-                                          "Capacity");
+                                          kCapacity);
 
   // Configure routing model parameters
   RoutingSearchParameters parameters = RoutingModel::DefaultSearchParameters();
   parameters.set_first_solution_strategy(
       FirstSolutionStrategy::PATH_CHEAPEST_ARC);
   parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
-  parameters.set_time_limit_ms(20000); // millisecond (sec*1000)
+  parameters.set_time_limit_ms(kTimeLimit);
 
+  // Solve and Display Solution
   const Assignment *solution = routing.SolveWithParameters(parameters);
-
-  return getRoutes(routing, *solution);
+  return GetRoutes(data, routing, *solution, routing.GetDimensionOrDie(kCapacity));
 }
 
 } // namespace
