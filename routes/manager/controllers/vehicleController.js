@@ -4,7 +4,7 @@ const ApplicationError = require("../../../errors/ApplicationError");
 
 const fetchVehicles = (req, res, next) => {
   const { company_id } = req.user;
-  db.select("vehicle_id", "licence_plate", "capacity", "driver_id")
+  db.select("vehicle_id", "licence_plate", "capacity", "driver_id", "route")
     .from("vehicles")
     .where({ company_id })
     .then(data => res.json({ vehicles: data }))
@@ -17,13 +17,14 @@ const addVehicle = (req, res, next) => {
 
   db.insert({ licence_plate, capacity, company_id })
     .into("vehicles")
-    .returning(["vehicle_id", "driver_id"])
+    .returning(["vehicle_id", "driver_id", "route"])
     .then(data =>
       res.json({
         vehicle_id: data[0].vehicle_id,
         licence_plate,
         capacity,
-        driver_id: data[0].driver_id
+        driver_id: data[0].driver_id,
+        route: data[0].route
       })
     )
     .catch(err => {
@@ -47,13 +48,13 @@ const editVehicle = (req, res, next) => {
     .first()
     .then(vehicleData => {
       const vehicleCompanyId = vehicleData.company_id;
-      const { driver_id } = vehicleData;
+      const { driver_id, route } = vehicleData;
       if (company_id === vehicleCompanyId) {
         db("vehicles")
           .where({ vehicle_id })
           .update({ licence_plate, capacity })
           .then(() =>
-            res.json({ vehicle_id, licence_plate, capacity, driver_id })
+            res.json({ vehicle_id, licence_plate, capacity, driver_id, route })
           )
           .catch(err => {
             console.log(err);
@@ -114,13 +115,13 @@ const assignDriver = (req, res, next) => {
     .first()
     .then(vehicleData => {
       const vehicleCompanyId = vehicleData.company_id;
-      const { licence_plate, capacity } = vehicleData;
+      const { licence_plate, capacity, route } = vehicleData;
       if (company_id === vehicleCompanyId) {
         db("vehicles")
           .where({ vehicle_id })
           .update({ driver_id })
           .then(() =>
-            res.json({ vehicle_id, licence_plate, capacity, driver_id })
+            res.json({ vehicle_id, licence_plate, capacity, driver_id, route })
           )
           .catch(err => {
             console.log(err);

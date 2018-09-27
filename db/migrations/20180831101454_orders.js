@@ -21,9 +21,10 @@ exports.up = knex =>
       .onDelete("CASCADE")
       .index();
     table.float("value", 8, 2);
-    table.integer("total_volume").unsigned()
+    table.integer("total_volume").unsigned();
     table.timestamp("created_at").defaultTo(knex.fn.now());
     table.timestamp("eta");
+    table.integer("route_index").unsigned();
   });
 
 exports.down = knex => knex.schema.dropTable("orders");

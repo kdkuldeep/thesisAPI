@@ -66,7 +66,7 @@ std::vector<std::vector<int>> GetRoutes(const DataModel &data,
       plan_output += "\n";
     }
   }
-  // LOG(INFO) << plan_output;
+  LOG(INFO) << plan_output;
   return routes;
 }
 
