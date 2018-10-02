@@ -106,6 +106,11 @@ const getDurationMatrix = (company_id, orderData) =>
       .then(response => response.body.durations)
   );
 
+const clearOrderRouting = (trx, company_id) =>
+  db("orders")
+    .where({ company_id })
+    .update({ vehicle_id: null, route_index: null, eta: null });
+
 // TODO: update eta
 const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
   Promise.all(
@@ -130,63 +135,83 @@ const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
     })
   );
 
-const updateRoutes = (trx, vehicleIDs, coords, routes) =>
-  Promise.all(
-    routes.map((route, vehicleIndex) => {
-      const vehicle_id = vehicleIDs[vehicleIndex];
-      const waypoints = route.map(orderIndex => coords[orderIndex]);
+const clearRoutes = (trx, company_id) =>
+  db("vehicles")
+    .where({ company_id })
+    .update({ route: null })
+    .transacting(trx);
 
-      return directionsService
-        .getDirections({ waypoints, geometries: "polyline6", overview: "full" })
-        .send()
-        .then(response => response.body.routes[0].geometry)
-        .then(encodedPolyline =>
-          db("vehicles")
-            .where({ vehicle_id })
-            .update({ route: encodedPolyline })
-            .transacting(trx)
-        );
-    })
+const updateRoutes = (trx, company_id, vehicleIDs, coords, routes) =>
+  clearRoutes(trx, company_id).then(() =>
+    Promise.all(
+      routes.map((route, vehicleIndex) => {
+        const vehicle_id = vehicleIDs[vehicleIndex];
+        const waypoints = route.map(orderIndex => coords[orderIndex]);
+
+        return directionsService
+          .getDirections({
+            waypoints,
+            geometries: "polyline6",
+            overview: "full"
+          })
+          .send()
+          .then(response => response.body.routes[0].geometry)
+          .then(encodedPolyline =>
+            db("vehicles")
+              .where({ vehicle_id })
+              .update({ route: encodedPolyline })
+              .transacting(trx)
+          );
+      })
+    )
   );
 
-const initReserves = (trx, orderIDs, vehicleIDs, routes) =>
-  Promise.all(
-    routes.map((route, vehicleIndex) => {
-      const vehicle_id = vehicleIDs[vehicleIndex];
-      const routeOrders = route
-        .slice(1, route.length - 1)
-        .map(orderIndex => orderIDs[orderIndex - 1]);
-
-      return db("reserves")
-        .where({ vehicle_id })
+const clearReserves = (trx, company_id) =>
+  db("vehicles")
+    .where({ company_id })
+    .pluck("vehicle_id")
+    .then(vehicleIDs =>
+      db("reserves")
+        .whereIn("vehicle_id", vehicleIDs)
         .del()
-        .then(() =>
-          db
-            .select("product_id", "quantity")
-            .from("order_product_rel")
-            .whereIn("order_id", routeOrders)
-            .then(products => groupBy(products, "product_id"))
-            .then(productsById =>
-              Promise.all(
-                Object.keys(productsById).map(product_id => {
-                  const totalQuantity = productsById[product_id]
-                    .map(product => product.quantity)
-                    .reduce((a, b) => a + b);
+        .transacting(trx)
+    );
 
-                  return db
-                    .insert({
-                      product_id,
-                      vehicle_id,
-                      min_quantity: totalQuantity,
-                      quantity: totalQuantity
-                    })
-                    .into("reserves")
-                    .transacting(trx);
-                })
-              )
+const initReserves = (trx, company_id, orderIDs, vehicleIDs, routes) =>
+  clearReserves(trx, company_id).then(() =>
+    Promise.all(
+      routes.map((route, vehicleIndex) => {
+        const vehicle_id = vehicleIDs[vehicleIndex];
+        const routeOrders = route
+          .slice(1, route.length - 1)
+          .map(orderIndex => orderIDs[orderIndex - 1]);
+
+        return db
+          .select("product_id", "quantity")
+          .from("order_product_rel")
+          .whereIn("order_id", routeOrders)
+          .then(products => groupBy(products, "product_id"))
+          .then(productsById =>
+            Promise.all(
+              Object.keys(productsById).map(product_id => {
+                const totalQuantity = productsById[product_id]
+                  .map(product => product.quantity)
+                  .reduce((a, b) => a + b);
+
+                return db
+                  .insert({
+                    product_id,
+                    vehicle_id,
+                    min_quantity: totalQuantity,
+                    quantity: totalQuantity
+                  })
+                  .into("reserves")
+                  .transacting(trx);
+              })
             )
-        );
-    })
+          );
+      })
+    )
   );
 
 const getOrderDataAfterRouting = company_id =>
@@ -195,52 +220,27 @@ const getOrderDataAfterRouting = company_id =>
     .from("orders")
     .where({ company_id });
 
+const getVehicleRoutesAfterRouting = company_id =>
+  db
+    .select("vehicle_id", "route")
+    .from("vehicles")
+    .where({ company_id });
+
 const getVehicleReserve = vehicle_id =>
   db
-    .select("products.product_id", "name", "quantity")
+    .select("products.product_id", "name", "quantity", "min_quantity")
     .from("products")
     .innerJoin("reserves", "products.product_id", "reserves.product_id")
     .where({ vehicle_id });
 
-const getVehicleDataAfterRouting = company_id =>
+const getReserveDataAfterRouting = company_id =>
   db
-    .select("vehicle_id", "route")
-    .from("vehicles")
+    .table("vehicles")
+    .pluck("vehicle_id")
     .where({ company_id })
-    .map(vehicleData =>
-      Promise.all([
-        vehicleData.vehicle_id,
-        vehicleData.route,
-        getVehicleReserve(vehicleData.vehicle_id)
-      ]).then(([vehicle_id, route, reserve]) => ({
-        vehicle_id,
-        route,
-        reserve
-      }))
+    .map(vehicle_id =>
+      getVehicleReserve(vehicle_id).then(reserve => ({ vehicle_id, reserve }))
     );
-// const getRouteAfterRouting = vehicle_id =>
-//   db
-//     .select("latitude", "longitude")
-//     .from("orders")
-//     .innerJoin("customers", "orders.customer_id", "customers.user_id")
-//     .where({ vehicle_id })
-//     .orderBy("route_index");
-
-// const getVehicleDataAfterRouting = company_id =>
-//   db
-//     .select()
-//     .from("vehicles")
-//     .where({ company_id })
-//     .map(vehicle =>
-//       Promise.all([
-//         getReserveAfterRouting(vehicle.vehicle_id),
-//         getRouteAfterRouting(vehicle.vehicle_id)
-//       ]).then(([reserve, route]) => ({
-//         vehicle_id: vehicle.vehicle_id,
-//         reserve,
-//         route
-//       }))
-//     );
 
 const solve = (req, res, next) => {
   const { company_id } = req.user;
@@ -293,8 +293,8 @@ const solve = (req, res, next) => {
       db.transaction(trx =>
         Promise.all([
           updateOrders(trx, orderIDs, vehicleIDs, routes),
-          updateRoutes(trx, vehicleIDs, coords, routes),
-          initReserves(trx, orderIDs, vehicleIDs, routes)
+          updateRoutes(trx, company_id, vehicleIDs, coords, routes),
+          initReserves(trx, company_id, orderIDs, vehicleIDs, routes)
         ])
           .then(trx.commit)
           .catch(trx.rollback)
@@ -303,16 +303,39 @@ const solve = (req, res, next) => {
     .then(() =>
       Promise.all([
         getOrderDataAfterRouting(company_id),
-        getVehicleDataAfterRouting(company_id)
+        getVehicleRoutesAfterRouting(company_id),
+        getReserveDataAfterRouting(company_id)
       ])
     )
-    .then(([orders, vehicles]) => res.json({ orders, vehicles }))
+    .then(([orders, routes, reserves]) =>
+      res.json({ orders, routes, reserves })
+    )
     .catch(err => {
       console.log(err);
       return next(new ApplicationError());
     });
 };
 
+const reset = (req, res, next) => {
+  const { company_id } = req.user;
+
+  db.transaction(trx =>
+    Promise.all([
+      clearOrderRouting(trx, company_id),
+      clearReserves(trx, company_id),
+      clearRoutes(trx, company_id)
+    ])
+      .then(trx.commit)
+      .catch(trx.rollback)
+  )
+    .then(() => res.json({}))
+    .catch(err => {
+      console.log(err);
+      return next(new ApplicationError("Cannot clear routing data"));
+    });
+};
+
 module.exports = {
-  solve
+  solve,
+  reset
 };

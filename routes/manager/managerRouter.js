@@ -14,6 +14,7 @@ const validateRequestBody = require("../../middleware/requestBodyValidation");
 const productSchema = require("../../request_schemas/productSchema");
 const vehicleSchema = require("../../request_schemas/vehicleSchema");
 const newDriverSchema = require("../../request_schemas/newDriverSchema");
+const reserveSchema = require("../../request_schemas/reserveSchema");
 
 router.use(authorizeUser(roles.MANAGER));
 
@@ -38,6 +39,16 @@ router.delete("/products/:id", products.deleteProduct);
 // Vehicle fetching/management
 
 router.get("/vehicles", vehicles.fetchVehicles);
+
+router.get("/vehicles/reserves", vehicles.fetchReserves);
+
+router.get("/vehicles/routes", vehicles.fetchRoutes);
+
+router.put(
+  "/reserves/:id",
+  validateRequestBody(reserveSchema),
+  vehicles.editReserve
+);
 
 router.post(
   "/vehicles",
@@ -79,6 +90,8 @@ router.get("/orders", orders.fetchOrders);
 
 // Routing related
 
-router.get("/routes", routing.solve);
+router.get("/vrp", routing.solve);
+
+router.delete("/vrp", routing.reset);
 
 module.exports = router;
