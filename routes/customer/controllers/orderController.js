@@ -149,6 +149,11 @@ const addOrder = (req, res, next) => {
                 "companies.company_id"
               )
               .then(orders => {
+                // save the company IDs referencing to the new orders in res.locals
+                // to be accessible in next middleware
+                res.locals.companies = orders.map(order => order.company_id);
+
+                // continue with constructing response body
                 const promises = orders.map(order => {
                   const { order_id } = order;
                   return db
@@ -168,6 +173,9 @@ const addOrder = (req, res, next) => {
 
                 return Promise.all(promises).then(orderFragments => {
                   res.json({ orderFragments });
+
+                  // call next middleware after sending response
+                  next();
                 });
               });
           }

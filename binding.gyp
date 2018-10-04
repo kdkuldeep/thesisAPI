@@ -5,8 +5,14 @@
         "cflags_cc!": [ "-fno-exceptions" ],
         "sources": [
             "cpp_src/addon.cc",
-            "cpp_src/solver.cc",
             "cpp_src/DataModel.cc",
+            "cpp_src/CapacityConstrainedDataModel.cc",
+            "cpp_src/CapacityConstrainedVRP.cc",
+            "cpp_src/CapacityConstrainedVRPWrapper.cc",
+            "cpp_src/ReserveConstrainedDataModel.cc",
+            "cpp_src/ReserveConstrainedVRP.cc",
+            "cpp_src/ReserveConstrainedVRPWrapper.cc",
+            "cpp_src/EmptyCallback.cc"
         ],
         'include_dirs': [
             "<!@(node -p \"require('node-addon-api').include\")",

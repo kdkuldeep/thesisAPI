@@ -1,24 +1,9 @@
-#include "DataModel.h"
-#include "ortools/base/logging.h"
-#include "ortools/base/stringprintf.h"
-#include "ortools/base/callback.h"
-#include "ortools/base/integral_types.h"
+#include "CapacityConstrainedVRP.h"
 
-using operations_research::Assignment;
-using operations_research::FirstSolutionStrategy;
-using operations_research::LocalSearchMetaheuristic;
-using operations_research::RoutingDimension;
-using operations_research::RoutingSearchParameters;
-using operations_research::StringAppendF;
-using operations_research::StringPrintf;
-
-namespace
-{
-
-std::vector<std::vector<int>> GetRoutes(const DataModel &data,
-                                        const RoutingModel &routing,
-                                        const operations_research::Assignment &plan,
-                                        const RoutingDimension &capacity_dimension)
+std::vector<std::vector<int>> getCapacityConstrainedRoutes(const CapacityConstrainedDataModel &data,
+                                                           const RoutingModel &routing,
+                                                           const operations_research::Assignment &plan,
+                                                           const RoutingDimension &capacity_dimension)
 {
   // 2d vector to hold routes for each vehicle
   std::vector<std::vector<int>> routes;
@@ -70,16 +55,15 @@ std::vector<std::vector<int>> GetRoutes(const DataModel &data,
   return routes;
 }
 
-std::vector<std::vector<int>> solver(std::vector<int64> capacities,
-                                     std::vector<int64> volumes,
-                                     std::vector<std::vector<int64>> demands,
-                                     std::vector<std::vector<int64>> durations)
+std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> capacities,
+                                                           std::vector<int64> volumes,
+                                                           std::vector<std::vector<int64>> durations,
+                                                           int timeLimit)
 {
-  DataModel data(capacities.size(), volumes.size(), capacities, volumes, demands, durations);
+  CapacityConstrainedDataModel data(capacities.size(), volumes.size(), capacities, volumes, durations);
 
   const char *kDuration = "Duration";
   const char *kCapacity = "Capacity";
-  const int kTimeLimit = 20000;       // metaheuristic time limit (milliseconds) (sec*1000)
   const int kMaxTripDuration = 28800; // maximum trip duration per vehicle (8 hours)
 
   // RoutingModel Constructor
@@ -111,7 +95,7 @@ std::vector<std::vector<int>> solver(std::vector<int64> capacities,
   routing.GetMutableDimension(kDuration)->SetGlobalSpanCostCoefficient(100);
 
   // Add Capacity Constraints
-  routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &DataModel::getOrderVolume),
+  routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &CapacityConstrainedDataModel::getOrderVolume),
                                           0,
                                           data.capacities(), // Maximum capacities per vehicle
                                           true,
@@ -122,11 +106,9 @@ std::vector<std::vector<int>> solver(std::vector<int64> capacities,
   parameters.set_first_solution_strategy(
       FirstSolutionStrategy::PATH_CHEAPEST_ARC);
   parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
-  parameters.set_time_limit_ms(kTimeLimit);
+  parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
 
   // Solve and Display Solution
   const Assignment *solution = routing.SolveWithParameters(parameters);
-  return GetRoutes(data, routing, *solution, routing.GetDimensionOrDie(kCapacity));
+  return getCapacityConstrainedRoutes(data, routing, *solution, routing.GetDimensionOrDie(kCapacity));
 }
-
-} // namespace
