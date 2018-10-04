@@ -1,13 +1,25 @@
 #include "ReserveConstrainedVRPWrapper.h"
 
-ReserveConstrainedSolverWorker::ReserveConstrainedSolverWorker(Napi::Function &callback, Napi::Promise::Deferred deferred, std::vector<std::vector<int64>> demands, std::vector<std::vector<int64>> reserves, std::vector<std::vector<int64>> durations, int timeLimit)
-    : Napi::AsyncWorker(callback), deferred(deferred), demands(demands), reserves(reserves), durations(durations), timeLimit(timeLimit) {}
+ReserveConstrainedSolverWorker::ReserveConstrainedSolverWorker(Napi::Function &callback,
+                                                               Napi::Promise::Deferred deferred,
+                                                               std::vector<int64> startingLocations,
+                                                               std::vector<std::vector<int64>> demands,
+                                                               std::vector<std::vector<int64>> reserves,
+                                                               std::vector<std::vector<int64>> durations,
+                                                               int timeLimit)
+    : Napi::AsyncWorker(callback),
+      deferred(deferred),
+      startingLocations(startingLocations),
+      demands(demands),
+      reserves(reserves),
+      durations(durations),
+      timeLimit(timeLimit) {}
 
 ReserveConstrainedSolverWorker::~ReserveConstrainedSolverWorker() {}
 
 void ReserveConstrainedSolverWorker::Execute()
 {
-  routes = solveWithReserveConstraints(demands, reserves, durations, timeLimit);
+  routes = solveWithReserveConstraints(startingLocations, demands, reserves, durations, timeLimit);
 }
 
 void ReserveConstrainedSolverWorker::OnOK()
@@ -42,7 +54,7 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(info.Env());
 
   // Check for incorrect arguments passed from JS and reject promise
-  if (info.Length() < 4)
+  if (info.Length() < 5)
   {
     deferred.Reject(
         Napi::TypeError::New(env, "Wrong number of arguments.").Value());
@@ -51,33 +63,48 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
   else if (!info[0].IsArray())
   {
     deferred.Reject(
-        Napi::TypeError::New(env, "Expected 2d array as third argument (demands)").Value());
+        Napi::TypeError::New(env, "Expected 1d array as first argument (starting locations)").Value());
   }
 
   else if (!info[1].IsArray())
   {
     deferred.Reject(
-        Napi::TypeError::New(env, "Expected 2d array as third argument (reserves)").Value());
+        Napi::TypeError::New(env, "Expected 2d array as second argument (demands)").Value());
   }
 
   else if (!info[2].IsArray())
   {
     deferred.Reject(
-        Napi::TypeError::New(env, "Expected 2d array as third argument (duration matrix)").Value());
+        Napi::TypeError::New(env, "Expected 2d array as third argument (reserves)").Value());
   }
 
-  else if (!info[3].IsNumber())
+  else if (!info[3].IsArray())
   {
     deferred.Reject(
-        Napi::TypeError::New(env, "Expected number as fourth argument (metaheuristic time limit)").Value());
+        Napi::TypeError::New(env, "Expected 2d array as fourth argument (duration matrix)").Value());
+  }
+
+  else if (!info[4].IsNumber())
+  {
+    deferred.Reject(
+        Napi::TypeError::New(env, "Expected number as fifth argument (metaheuristic time limit)").Value());
   }
 
   else
   {
 
-    // Get product demands from first argument
+    // Get vehicle starting locations from first argument
+    std::vector<int64> startingLocations;
+    Napi::Array startingLocationsInput = info[0].As<Napi::Array>();
+    for (uint32_t rowIndex = 0; rowIndex < startingLocationsInput.Length(); rowIndex++)
+    {
+      int64 locationValue = startingLocationsInput.Get(rowIndex).As<Napi::Number>().Int64Value();
+      startingLocations.push_back(locationValue);
+    }
+
+    // Get product demands from second argument
     std::vector<std::vector<int64>> demands;
-    Napi::Array demandsInput = info[0].As<Napi::Array>();
+    Napi::Array demandsInput = info[1].As<Napi::Array>();
     for (uint32_t rowIndex = 0; rowIndex < demandsInput.Length(); rowIndex++)
     {
       std::vector<int64> demandsRow;
@@ -90,9 +117,9 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
       demands.push_back(demandsRow);
     }
 
-    // Get vehicle reserves from second argument
+    // Get vehicle reserves from third argument
     std::vector<std::vector<int64>> reserves;
-    Napi::Array reservesInput = info[1].As<Napi::Array>();
+    Napi::Array reservesInput = info[2].As<Napi::Array>();
     for (uint32_t rowIndex = 0; rowIndex < reservesInput.Length(); rowIndex++)
     {
       std::vector<int64> reservesRow;
@@ -105,9 +132,9 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
       reserves.push_back(reservesRow);
     }
 
-    // Get duration matrix from third argument
+    // Get duration matrix from fourth argument
     std::vector<std::vector<int64>> durations;
-    Napi::Array durationsInput = info[2].As<Napi::Array>();
+    Napi::Array durationsInput = info[3].As<Napi::Array>();
     for (uint32_t rowIndex = 0; rowIndex < durationsInput.Length(); rowIndex++)
     {
       std::vector<int64> durationsRow;
@@ -120,14 +147,14 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
       durations.push_back(durationsRow);
     }
 
-    // Get metaheuristic time limit from fourth argument
-    int timeLimit = info[3].As<Napi::Number>();
+    // Get metaheuristic time limit from fifth argument
+    int timeLimit = info[4].As<Napi::Number>();
 
     // create empty callback to pass to AsyncWorker
     Napi::Function callback = Napi::Function::New(env, EmptyCallback);
 
     // create AsyncWorker and queue for execution
-    ReserveConstrainedSolverWorker *worker = new ReserveConstrainedSolverWorker(callback, deferred, demands, reserves, durations, timeLimit);
+    ReserveConstrainedSolverWorker *worker = new ReserveConstrainedSolverWorker(callback, deferred, startingLocations, demands, reserves, durations, timeLimit);
     worker->Queue();
   }
 

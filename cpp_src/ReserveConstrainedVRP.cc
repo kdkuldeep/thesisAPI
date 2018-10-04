@@ -50,20 +50,21 @@ std::vector<std::vector<int>> getReserveConstrainedRoutes(const ReserveConstrain
   return routes;
 }
 
-std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<std::vector<int64>> demands,
+std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> startingLocations,
+                                                          std::vector<std::vector<int64>> demands,
                                                           std::vector<std::vector<int64>> reserves,
                                                           std::vector<std::vector<int64>> durations,
                                                           int timeLimit)
 {
-  ReserveConstrainedDataModel data(reserves[0].size(), demands[0].size(), demands.size(), demands, reserves, durations);
+  ReserveConstrainedDataModel data(reserves[0].size(), demands[0].size(), demands.size(), startingLocations, demands, reserves, durations);
 
   const char *kDuration = "Duration";
   const int kMaxTripDuration = 28800; // maximum trip duration per vehicle (8 hours)
 
   // RoutingModel Constructor
-  // Arguments: int nodes, int vehicles, NodeIndex depot
+  // Arguments: int nodes, int vehicles, std::vector<NodeIndex>& starts, std::vector<NodeIndex>& ends
   // Create a routing model for the given problem size
-  RoutingModel routing(data.numberOfOrders(), data.numberOfVehicles(), RoutingModel::NodeIndex(0));
+  RoutingModel routing(data.numberOfOrders(), data.numberOfVehicles(), data.starts(), data.ends());
 
   // SetArcCostEvaluatorOfAllVehicles
   // Return type: void

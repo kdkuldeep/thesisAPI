@@ -25,6 +25,7 @@ exports.up = knex =>
     table.timestamp("created_at").defaultTo(knex.fn.now());
     table.timestamp("eta");
     table.integer("route_index").unsigned();
+    table.boolean("completed").defaultTo(false);
   });
 
 exports.down = knex => knex.schema.dropTable("orders");

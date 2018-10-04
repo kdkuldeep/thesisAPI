@@ -2,10 +2,19 @@ const groupBy = require("lodash/groupBy");
 const db = require("../db/knex");
 const { directionsService } = require("../mapboxServices");
 
+// *******************************************************
+// *            Order Related Updates                    *
+// *******************************************************
+
 const clearOrderRouting = (trx, company_id) =>
   db("orders")
     .where({ company_id })
     .update({ vehicle_id: null, route_index: null, eta: null });
+
+// Update the appropriate rows in ORDERS table for orders routed in VRP solution where:
+// vehicle_id = the id of the vehicle handling the order
+// eta = estimated time of arrival
+// route_index = index of order in vehicle's delivery route
 
 // TODO: update eta
 const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
@@ -18,18 +27,22 @@ const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
         .map(orderIndex => orderIDs[orderIndex - 1]);
 
       return Promise.all(
-        routeOrders.map((order_id, orderIndex) =>
+        routeOrders.map((order_id, indexInRoute) =>
           db("orders")
             .where({ order_id })
             .update({
               vehicle_id: vehicleIDs[vehicleIndex],
-              route_index: orderIndex + 1
+              route_index: indexInRoute + 1
             })
             .transacting(trx)
         )
       );
     })
   );
+
+// *******************************************************
+// *            Vehicle Route Updates                  *
+// *******************************************************
 
 const clearRoutes = (trx, company_id) =>
   db("vehicles")
@@ -61,6 +74,10 @@ const updateRoutes = (trx, company_id, vehicleIDs, coords, routes) =>
       })
     )
   );
+
+// *******************************************************
+// *            Vehicle Reserve Updates                 *
+// *******************************************************
 
 const clearReserves = (trx, company_id) =>
   db("vehicles")
@@ -110,18 +127,28 @@ const initReserves = (trx, company_id, orderIDs, vehicleIDs, routes) =>
     )
   );
 
+// *******************************************************
+// *              VRP Output Handler                     *
+// *******************************************************
+
+// This function's main  parameter is routingOutput that is returned by the VRPSolver addon
+// routingOutput is a N-dimensional array where:
+// N = number of vehicles used to solve VRP
+// and routingOuput[i] is an M-dimensional array where:
+// M = number of locations visited by vehicle {i} + 2 (for start and end locations)
+
 const handleOutput = (
   company_id,
   vehicleIDs,
   orderIDs,
   coordData,
-  routingData
+  routingOutput
 ) =>
   db.transaction(trx =>
     Promise.all([
-      updateOrders(trx, orderIDs, vehicleIDs, routingData),
-      updateRoutes(trx, company_id, vehicleIDs, coordData, routingData),
-      initReserves(trx, company_id, orderIDs, vehicleIDs, routingData)
+      updateOrders(trx, orderIDs, vehicleIDs, routingOutput),
+      updateRoutes(trx, company_id, vehicleIDs, coordData, routingOutput),
+      initReserves(trx, company_id, orderIDs, vehicleIDs, routingOutput)
     ])
       .then(trx.commit)
       .catch(trx.rollback)

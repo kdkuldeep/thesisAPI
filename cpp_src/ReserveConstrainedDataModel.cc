@@ -3,6 +3,7 @@
 ReserveConstrainedDataModel::ReserveConstrainedDataModel(int numberOfVehicles,
                                                          int numberOfOrders,
                                                          int numberOfProducts,
+                                                         std::vector<int64> startingLocations,
                                                          std::vector<std::vector<int64>> demands,
                                                          std::vector<std::vector<int64>> reserves,
                                                          std::vector<std::vector<int64>> durations)
@@ -11,6 +12,12 @@ ReserveConstrainedDataModel::ReserveConstrainedDataModel(int numberOfVehicles,
       _demands(demands),
       _reserves(reserves)
 {
+  for (int vehicle_index = 0; vehicle_index < numberOfVehicles; vehicle_index++)
+  {
+    _starts.push_back(RoutingModel::NodeIndex(startingLocations[vehicle_index]));
+    _ends.push_back(RoutingModel::NodeIndex(0));
+  }
+
   for (int product_index = 0; product_index < numberOfProducts; product_index++)
   {
     ProductDemand demand(demands[product_index]);
@@ -21,6 +28,16 @@ ReserveConstrainedDataModel::ReserveConstrainedDataModel(int numberOfVehicles,
 int ReserveConstrainedDataModel::numberOfProducts()
 {
   return _numberOfProducts;
+}
+
+std::vector<RoutingModel::NodeIndex> ReserveConstrainedDataModel::starts()
+{
+  return _starts;
+}
+
+std::vector<RoutingModel::NodeIndex> ReserveConstrainedDataModel::ends()
+{
+  return _ends;
 }
 
 std::vector<std::vector<int64>> ReserveConstrainedDataModel::demands()

@@ -10,9 +10,7 @@ const authorizeUser = require("../../middleware/userAuthorization");
 const validateRequestBody = require("../../middleware/requestBodyValidation");
 const newOrderSchema = require("../../request_schemas/newOrderSchema");
 
-const test = companies => {
-  console.log(companies);
-};
+const { onNewOrderConditionalReroute } = require("../../vrp_utils/vrpSolvers");
 
 router.use(authorizeUser(roles.CUSTOMER));
 
@@ -34,7 +32,7 @@ router.post(
   // using process.nextTick to end request-response licecycle first (?)
   (req, res) =>
     process.nextTick(() => {
-      test(res.locals.companies);
+      onNewOrderConditionalReroute(res.locals.companies);
     })
 );
 module.exports = router;

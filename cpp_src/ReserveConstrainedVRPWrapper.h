@@ -10,6 +10,7 @@ class ReserveConstrainedSolverWorker : public Napi::AsyncWorker
 private:
   std::vector<std::vector<int>> routes;
   Napi::Promise::Deferred deferred;
+  std::vector<int64> startingLocations;
   std::vector<std::vector<int64>> demands;
   std::vector<std::vector<int64>> reserves;
   std::vector<std::vector<int64>> durations;
@@ -18,6 +19,7 @@ private:
 public:
   ReserveConstrainedSolverWorker(Napi::Function &callback,
                                  Napi::Promise::Deferred deferred,
+                                 std::vector<int64> startingLocations,
                                  std::vector<std::vector<int64>> demands,
                                  std::vector<std::vector<int64>> reserves,
                                  std::vector<std::vector<int64>> durations,

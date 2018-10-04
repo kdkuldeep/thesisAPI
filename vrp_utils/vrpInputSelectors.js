@@ -23,10 +23,48 @@ const getVehicleIds = vehicleData =>
   vehicleData.map(vehicle => vehicle.vehicle_id);
 
 // Return CAPACITIES input as a N x 1 array where:
-// n = number of manned vehicles
+// N = number of manned vehicles
 
 const createCapacitiesInput = vehicleData =>
   vehicleData.map(vehicle => vehicle.capacity);
+
+// Return a N x 1 array where:
+// N = number of vehicles
+// takes as parameters the ORDERED ids of vehicles and orders used in VRPSolver
+// return the starting location of each vehicle:
+//    - find the order_id of the order with minimum route_index
+//    - find the index of this order_id in orderIDs array
+//    - this index + 1 is the Routing node index used in previous VRP Solution (+1 for depot)
+
+const createStartingLocations = (vehicleIDs, orderIDs) =>
+  vehicleIDs.map(vehicle_id =>
+    db("orders")
+      .where({ vehicle_id, completed: false })
+      .orderBy("route_index")
+      .first()
+      .then(({ order_id }) => orderIDs.indexOf(order_id) + 1)
+  );
+
+// Return RESERVES input as a N x M array where:
+// N = number of company products
+// M = number of manned vehicles
+
+const createReservesInput = (productData, vehicleData) =>
+  Promise.all(
+    productData.map(product =>
+      Promise.all(
+        vehicleData.map(vehicle =>
+          db
+            .table("reserve")
+            .where({
+              vehicle_id: vehicle.vehicle_id,
+              product_id: product.product_id
+            })
+            .then(reserve => (reserve.length === 0 ? 0 : reserve[0].quantity))
+        )
+      )
+    )
+  );
 
 // *******************************************************
 // *            Product Related Data                     *
@@ -53,11 +91,10 @@ const getProductData = company_id =>
 // this data is used to create the DURATION MATRIX, DEMANDS, and VOLUMES
 // used as input to the vrp solvers
 
-// TODO: exclude COMPLETED orders
 const getOrderData = company_id =>
   db
     .table("orders")
-    .where({ company_id })
+    .where({ company_id, completed: false })
     .innerJoin("customers", "orders.customer_id", "customers.user_id")
     .select("order_id", "latitude", "longitude", "total_volume")
     .orderBy("order_id");
@@ -65,34 +102,28 @@ const getOrderData = company_id =>
 const getOrderIds = orderData => orderData.map(order => order.order_id);
 
 // Return DEMANDS input as a N x M array where:
-// n = number of orders + 1
-// m = number of company products
-// first row filled with 0 for demands accumulated at depot
-//
-//    [[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-//    [ 2, 5, 0, 10, 8, 2, 4, 6, 8, 0 ],
-//                  ......
-//    [ 10, 8, 1, 8, 7, 1, 1, 9, 8, 8 ]]
+// N = number of company products
+// M = number of orders + 1
+// first COLUMN filled with 0 for demands accumulated at depot
 
 const createDemandsInput = (productData, orderData) =>
   Promise.all(
-    orderData.map(order =>
+    productData.map(product =>
       Promise.all(
-        productData.map(product =>
+        orderData.map(order =>
           db
             .table("order_product_rel")
-            .where("order_id", order.order_id)
-            .andWhere("product_id", product.product_id)
+            .where({ order_id: order.order_id, product_id: product.product_id })
             .then(
               contents => (contents.length === 0 ? 0 : contents[0].quantity)
             )
         )
-      )
+      ).then(arr => [0, ...arr])
     )
-  ).then(arr => [Array(productData.length).fill(0), ...arr]);
+  );
 
 // Return VOLUMES input as a N x 1 array where:
-// n = number of orders + 1
+// N = number of orders + 1
 // first element 0 for volume accumulated at depot
 
 const createVolumesInput = orderData => [
@@ -120,7 +151,7 @@ const getCustomerCoords = orderData =>
   }));
 
 // Return a N x 1 array where:
-// n = number of orders + 1
+// N = number of orders + 1
 //
 // [{coordinates: [lng, lat]},
 //  {coordinates: [lng, lat]},
@@ -133,8 +164,8 @@ const createCoordData = (company_id, orderData) =>
   );
 
 // Return DURATION MATRIX input as a N x M array where:
-// n = number of orders + 1
-// m = number of orders + 1
+// N = number of orders + 1
+// M = number of orders + 1
 // diagonal filled with 0 for same location duration
 const createDurationMatrix = coordData =>
   matrixService
@@ -150,7 +181,9 @@ module.exports = {
   getOrderIds,
   createCoordData,
   createCapacitiesInput,
-  createDemandsInput,
   createVolumesInput,
-  createDurationMatrix
+  createDurationMatrix,
+  createStartingLocations,
+  createReservesInput,
+  createDemandsInput
 };

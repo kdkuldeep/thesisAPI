@@ -20,7 +20,8 @@ std::vector<std::vector<int>> getReserveConstrainedRoutes(const ReserveConstrain
                                                           const RoutingModel &routing,
                                                           const operations_research::Assignment &plan);
 
-std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<std::vector<int64>> demands,
+std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> startingLocations,
+                                                          std::vector<std::vector<int64>> demands,
                                                           std::vector<std::vector<int64>> reserves,
                                                           std::vector<std::vector<int64>> durations,
                                                           int timeLimit);
