@@ -24,6 +24,12 @@ app.use("/manager", userAuthentication, managerRouter);
 app.use("/customer", userAuthentication, customerRouter);
 app.use("/driver", userAuthentication, driverRouter);
 
+// TESTING-PRESENTATION ROUTE
+const testingRouter = require("./routes/TEST/testingRouter");
+
+app.use("/testing", userAuthentication, testingRouter);
+// **************************
+
 app.use("/*", (req, res, next) => {
   const error = new Error("Not found");
   error.status = 404;

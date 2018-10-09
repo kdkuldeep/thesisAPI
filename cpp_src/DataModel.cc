@@ -1,10 +1,10 @@
 #include "DataModel.h"
 
 DataModel::DataModel(int numberOfVehicles,
-                     int numberOfOrders,
+                     int numberOfNodes,
                      std::vector<std::vector<int64>> durations)
     : _numberOfVehicles(numberOfVehicles),
-      _numberOfOrders(numberOfOrders),
+      _numberOfNodes(numberOfNodes),
       _durations(durations){};
 
 int DataModel::numberOfVehicles()
@@ -12,9 +12,9 @@ int DataModel::numberOfVehicles()
   return _numberOfVehicles;
 }
 
-int DataModel::numberOfOrders()
+int DataModel::numberOfNodes()
 {
-  return _numberOfOrders;
+  return _numberOfNodes;
 }
 
 std::vector<std::vector<int64>> DataModel::durations()

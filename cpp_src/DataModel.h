@@ -10,14 +10,14 @@ class DataModel
 {
 private:
   int _numberOfVehicles;
-  int _numberOfOrders;
-  std::vector<std::vector<int64>> _durations; // The n x n duration matrix (n = numberOfOrders + 1 depot)
+  int _numberOfNodes;                         // numberOfNodes = order locations + 1 depot location
+  std::vector<std::vector<int64>> _durations; // The n x n duration matrix (numberOfNodes x numberOfNodes)
 public:
   DataModel(int numberOfVehicles,
-            int numberOfOrders,
+            int numberOfNodes,
             std::vector<std::vector<int64>> durations);
   int numberOfVehicles();
-  int numberOfOrders();
+  int numberOfNodes();
   std::vector<std::vector<int64>> durations();
   int64 getArcCost(RoutingModel::NodeIndex from, RoutingModel::NodeIndex to);
 };

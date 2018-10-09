@@ -69,7 +69,14 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
   // RoutingModel Constructor
   // Arguments: int nodes, int vehicles, NodeIndex depot
   // Create a routing model for the given problem size
-  RoutingModel routing(data.numberOfOrders(), data.numberOfVehicles(), RoutingModel::NodeIndex(0));
+  RoutingModel routing(data.numberOfNodes(), data.numberOfVehicles(), RoutingModel::NodeIndex(0));
+
+  // Configure routing model parameters
+  RoutingSearchParameters parameters = RoutingModel::DefaultSearchParameters();
+  parameters.set_first_solution_strategy(
+      FirstSolutionStrategy::PATH_CHEAPEST_ARC);
+  parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
+  parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
 
   // SetArcCostEvaluatorOfAllVehicles
   // Return type: void
@@ -101,12 +108,16 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
                                           true,
                                           kCapacity);
 
-  // Configure routing model parameters
-  RoutingSearchParameters parameters = RoutingModel::DefaultSearchParameters();
-  parameters.set_first_solution_strategy(
-      FirstSolutionStrategy::PATH_CHEAPEST_ARC);
-  parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
-  parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
+  // Adding penalty costs to allow skipping orders.
+  // TODO: prioritize orders from previous days
+  const int64 kPenalty = 10000000;
+  const RoutingModel::NodeIndex kFirstNodeAfterDepot(1);
+  for (RoutingModel::NodeIndex order = kFirstNodeAfterDepot;
+       order < routing.nodes(); ++order)
+  {
+    std::vector<RoutingModel::NodeIndex> orders(1, order);
+    routing.AddDisjunction(orders, kPenalty);
+  }
 
   // Solve and Display Solution
   const Assignment *solution = routing.SolveWithParameters(parameters);

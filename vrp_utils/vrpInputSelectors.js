@@ -37,12 +37,14 @@ const createCapacitiesInput = vehicleData =>
 //    - this index + 1 is the Routing node index used in previous VRP Solution (+1 for depot)
 
 const createStartingLocations = (vehicleIDs, orderIDs) =>
-  vehicleIDs.map(vehicle_id =>
-    db("orders")
-      .where({ vehicle_id, completed: false })
-      .orderBy("route_index")
-      .first()
-      .then(({ order_id }) => orderIDs.indexOf(order_id) + 1)
+  Promise.all(
+    vehicleIDs.map(vehicle_id =>
+      db("orders")
+        .where({ vehicle_id, completed: false })
+        .orderBy("route_index")
+        .first()
+        .then(({ order_id }) => orderIDs.indexOf(order_id) + 1)
+    )
   );
 
 // Return RESERVES input as a N x M array where:
@@ -55,7 +57,7 @@ const createReservesInput = (productData, vehicleData) =>
       Promise.all(
         vehicleData.map(vehicle =>
           db
-            .table("reserve")
+            .table("reserves")
             .where({
               vehicle_id: vehicle.vehicle_id,
               product_id: product.product_id

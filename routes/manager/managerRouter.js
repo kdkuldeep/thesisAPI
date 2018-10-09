@@ -4,7 +4,8 @@ const products = require("./controllers/productController");
 const vehicles = require("./controllers/vehicleController");
 const drivers = require("./controllers/driverController");
 const orders = require("./controllers/orderController");
-const routing = require("./controllers/routingController");
+const vehicleRoutes = require("./controllers/routingController");
+const shipping = require("./controllers/shippingController");
 
 const roles = require("../../roles");
 
@@ -15,11 +16,14 @@ const productSchema = require("../../request_schemas/productSchema");
 const vehicleSchema = require("../../request_schemas/vehicleSchema");
 const newDriverSchema = require("../../request_schemas/newDriverSchema");
 const reserveSchema = require("../../request_schemas/reserveSchema");
+const shippingStateSchema = require("../../request_schemas/shippingStateSchema");
 
+// Use authorization middleware for MANAGER role
 router.use(authorizeUser(roles.MANAGER));
 
-// Product fetching/managment
-
+// ********************************
+// *      Product Management      *
+// ********************************
 router.get("/products", products.fetchProducts);
 
 router.post(
@@ -36,7 +40,9 @@ router.put(
 
 router.delete("/products/:id", products.deleteProduct);
 
-// Vehicle fetching/management
+// ********************************
+// *      Vehicle Management      *
+// ********************************
 
 router.get("/vehicles", vehicles.fetchVehicles);
 
@@ -70,7 +76,9 @@ router.post(
 
 router.delete("/vehicles/:id", vehicles.deleteVehicle);
 
-// Driver fetching/management
+// ********************************
+// *        Driver Management     *
+// ********************************
 
 router.get("/drivers", drivers.fetchDrivers);
 
@@ -80,18 +88,26 @@ router.post(
   drivers.registerDriver
 );
 
-// router.put("/drivers", drivers.editDriver);
-
 router.delete("/drivers/:id", drivers.deleteDriver);
 
-// Orders fetching/management
-
+// ********************************
+// *      Order Management        *
+// ********************************
 router.get("/orders", orders.fetchOrders);
 
-// Routing related
+// ********************************
+// *        VRP Management        *
+// ********************************
+router.get("/routes", vehicleRoutes.calculate);
 
-router.get("/vrp", routing.solve);
-
-router.delete("/vrp", routing.reset);
+// *********************************
+// *   Shipping State Management   *
+// *********************************
+router.get("/shipping", shipping.fetchState);
+router.put(
+  "/shipping",
+  validateRequestBody(shippingStateSchema),
+  shipping.setState
+);
 
 module.exports = router;

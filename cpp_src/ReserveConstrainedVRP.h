@@ -18,7 +18,7 @@ using operations_research::StringPrintf;
 
 std::vector<std::vector<int>> getReserveConstrainedRoutes(const ReserveConstrainedDataModel &data,
                                                           const RoutingModel &routing,
-                                                          const operations_research::Assignment &plan);
+                                                          const Assignment &plan);
 
 std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> startingLocations,
                                                           std::vector<std::vector<int64>> demands,

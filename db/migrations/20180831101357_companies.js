@@ -13,6 +13,7 @@ exports.up = knex =>
     table.string("number", lengths.STREET_NUMBER).notNullable();
     table.decimal("latitude", 10, 6).notNullable();
     table.decimal("longitude", 10, 6).notNullable();
+    table.boolean("shipping_initialized").defaultTo(false);
   });
 
 exports.down = knex => knex.schema.dropTable("companies");

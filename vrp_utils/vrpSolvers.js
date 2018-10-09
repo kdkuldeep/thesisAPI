@@ -109,8 +109,8 @@ const recalculateRoutes = company_id =>
           orderIDs,
           coordData,
           createStartingLocations(vehicleIDs, orderIDs),
-          createReservesInput(productData, vehicleData),
           createDemandsInput(productData, orderData),
+          createReservesInput(productData, vehicleData),
           createDurationMatrix(coordData)
         ])
     )
@@ -120,8 +120,8 @@ const recalculateRoutes = company_id =>
         orderIDs,
         coordData,
         startingLocations,
-        reserves,
         demands,
+        reserves,
         durations
       ]) => {
         console.log("\n-----------------------------------------\n");
@@ -145,24 +145,24 @@ const recalculateRoutes = company_id =>
           coordData,
           VRPSolver.solveAsyncWithReserveConstraints(
             startingLocations,
-            reserves,
             demands,
+            reserves,
             durations,
             METAHEURISTIC_TIME_LIMIT
           )
         ]);
       }
-    )
-    .then(([vehicleIDs, orderIDs, coordData, routingOutput]) => {
-      console.log("\n-----------------------------------------\n");
-      return handleOutput(
-        company_id,
-        vehicleIDs,
-        orderIDs,
-        coordData,
-        routingOutput
-      );
-    });
+    );
+// .then(([vehicleIDs, orderIDs, coordData, routingOutput]) => {
+//   console.log("\n-----------------------------------------\n");
+//   return handleOutput(
+//     company_id,
+//     vehicleIDs,
+//     orderIDs,
+//     coordData,
+//     routingOutput
+//   );
+// });
 
 const onNewOrderConditionalReroute = companyIDs =>
   db("companies")
@@ -173,5 +173,6 @@ const onNewOrderConditionalReroute = companyIDs =>
 
 module.exports = {
   calculateInitialRoutes,
+  recalculateRoutes,
   onNewOrderConditionalReroute
 };

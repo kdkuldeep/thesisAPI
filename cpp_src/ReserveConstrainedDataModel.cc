@@ -1,15 +1,14 @@
 #include "ReserveConstrainedDataModel.h"
 
 ReserveConstrainedDataModel::ReserveConstrainedDataModel(int numberOfVehicles,
-                                                         int numberOfOrders,
+                                                         int numberOfNodes,
                                                          int numberOfProducts,
                                                          std::vector<int64> startingLocations,
                                                          std::vector<std::vector<int64>> demands,
                                                          std::vector<std::vector<int64>> reserves,
                                                          std::vector<std::vector<int64>> durations)
-    : DataModel(numberOfVehicles, numberOfOrders, durations),
+    : DataModel(numberOfVehicles, numberOfNodes, durations),
       _numberOfProducts(numberOfProducts),
-      _demands(demands),
       _reserves(reserves)
 {
   for (int vehicle_index = 0; vehicle_index < numberOfVehicles; vehicle_index++)
@@ -21,7 +20,7 @@ ReserveConstrainedDataModel::ReserveConstrainedDataModel(int numberOfVehicles,
   for (int product_index = 0; product_index < numberOfProducts; product_index++)
   {
     ProductDemand demand(demands[product_index]);
-    _product_demands.push_back(demand);
+    _demands.push_back(demand);
   }
 };
 
@@ -40,7 +39,7 @@ std::vector<RoutingModel::NodeIndex> ReserveConstrainedDataModel::ends()
   return _ends;
 }
 
-std::vector<std::vector<int64>> ReserveConstrainedDataModel::demands()
+std::vector<ProductDemand> ReserveConstrainedDataModel::demands()
 {
   return _demands;
 }
@@ -57,7 +56,7 @@ std::vector<int64> ReserveConstrainedDataModel::getProductReserves(int product_i
 
 ProductDemand ReserveConstrainedDataModel::getProductDemand(int product_index)
 {
-  return _product_demands[product_index];
+  return _demands[product_index];
 }
 
 // ProductDemand
@@ -65,7 +64,12 @@ ProductDemand ReserveConstrainedDataModel::getProductDemand(int product_index)
 ProductDemand::ProductDemand(std::vector<int64> demand)
     : _demand(demand){};
 
-int64 ProductDemand::getDemand(RoutingModel::NodeIndex from, RoutingModel::NodeIndex to)
+std::vector<int64> ProductDemand::demand()
 {
-  return _demand[to.value()];
+  return _demand;
+}
+
+int64 ProductDemand::getOrderDemand(RoutingModel::NodeIndex from, RoutingModel::NodeIndex to)
+{
+  return _demand[from.value()];
 }
