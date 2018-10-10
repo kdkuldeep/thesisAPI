@@ -24,5 +24,5 @@ std::vector<std::vector<int64>> DataModel::durations()
 
 int64 DataModel::getArcCost(RoutingModel::NodeIndex from, RoutingModel::NodeIndex to)
 {
-  return _durations[from.value()][to.value()];
+  return _durations.at(from.value()).at(to.value());
 }

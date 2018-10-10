@@ -21,5 +21,5 @@ std::vector<int64> CapacityConstrainedDataModel::volumes()
 
 int64 CapacityConstrainedDataModel::getOrderVolume(RoutingModel::NodeIndex from, RoutingModel::NodeIndex to)
 {
-  return _volumes[from.value()];
+  return _volumes.at(from.value());
 }

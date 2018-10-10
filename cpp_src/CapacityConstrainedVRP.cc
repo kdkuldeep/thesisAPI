@@ -78,23 +78,16 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
   parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
   parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
 
-  // SetArcCostEvaluatorOfAllVehicles
-  // Return type: void
-  // Arguments: NodeEvaluator2* evaluator
-  // Sets the cost function of the model such that the cost of a segment of a
-  // route between node 'from' and 'to' is evaluator(from, to), whatever the
-  // route or vehicle performing the route.
-  // Takes ownership of the callback 'evaluator'.
+  // Set the cost function.
   routing.SetArcCostEvaluatorOfAllVehicles(NewPermanentCallback(&data, &DataModel::getArcCost));
 
   // Add a dimension to accumulate trip durations
-  // Try to minimize the max trip duration difference among vehicles.
-  // It doesn't mean the standard deviation is minimized
   routing.AddDimension(NewPermanentCallback(&data, &DataModel::getArcCost),
                        0, // null slack
                        kMaxTripDuration,
                        true, // start cumul to zero
                        kDuration);
+
   // Sets a cost proportional to the *global* dimension span, that is the difference
   // between the largest value of route end cumul variables and the smallest value of route
   // start cumul variables. In other words:
@@ -104,7 +97,7 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
   // Add Capacity Constraints
   routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &CapacityConstrainedDataModel::getOrderVolume),
                                           0,
-                                          data.capacities(), // Maximum capacities per vehicle
+                                          data.capacities(),
                                           true,
                                           kCapacity);
 
@@ -121,5 +114,21 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
 
   // Solve and Display Solution
   const Assignment *solution = routing.SolveWithParameters(parameters);
-  return getCapacityConstrainedRoutes(data, routing, *solution, routing.GetDimensionOrDie(kCapacity));
+
+  if (solution != nullptr)
+  {
+    return getCapacityConstrainedRoutes(data, routing, *solution, routing.GetDimensionOrDie(kCapacity));
+  }
+  else
+  {
+    // 0	ROUTING_NOT_SOLVED: Problem not solved yet.
+    // 1	ROUTING_SUCCESS: Problem solved successfully.
+    // 2	ROUTING_FAIL: No solution found to the problem.
+    // 3	ROUTING_FAIL_TIMEOUT: Time limit reached before finding a solution.
+    // 4	ROUTING_INVALID: Model, model parameters, or flags are not valid.
+
+    LOG(INFO) << "No Solution Found! Routing status: " + std::to_string(routing.status()) + "\n";
+    std::vector<std::vector<int>> empty_routes;
+    return empty_routes;
+  }
 }

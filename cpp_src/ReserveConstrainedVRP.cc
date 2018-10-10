@@ -61,23 +61,14 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
 
   // Configure routing model parameters
   RoutingSearchParameters parameters = RoutingModel::DefaultSearchParameters();
-  parameters.set_first_solution_strategy(
-      FirstSolutionStrategy::PATH_CHEAPEST_ARC);
+  parameters.set_first_solution_strategy(FirstSolutionStrategy::PATH_CHEAPEST_ARC);
   parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
   parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
 
-  // SetArcCostEvaluatorOfAllVehicles
-  // Return type: void
-  // Arguments: NodeEvaluator2* evaluator
-  // Sets the cost function of the model such that the cost of a segment of a
-  // route between node 'from' and 'to' is evaluator(from, to), whatever the
-  // route or vehicle performing the route.
-  // Takes ownership of the callback 'evaluator'.
+  // Set the cost function.
   routing.SetArcCostEvaluatorOfAllVehicles(NewPermanentCallback(&data, &DataModel::getArcCost));
 
   // Add a dimension to accumulate trip durations
-  // Try to minimize the max trip duration difference among vehicles.
-  // It doesn't mean the standard deviation is minimized
   routing.AddDimension(NewPermanentCallback(&data, &DataModel::getArcCost),
                        0, // null slack
                        kMaxTripDuration,
@@ -96,16 +87,15 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
   for (int product_index = 0; product_index < data.numberOfProducts(); product_index++)
   {
     kReserve.push_back("Reserve" + std::to_string(product_index));
-
-    routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data.getProductDemand(product_index), &ProductDemand::getOrderDemand),
+    routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &ReserveConstrainedDataModel::getProductDemandAtNode, product_index),
                                             0,
                                             data.getProductReserves(product_index),
                                             true,
                                             kReserve[product_index]);
   }
 
-  // Adding penalty costs to allow skipping orders.
-  // https://groups.google.com/forum/#!topic/or-tools-discuss/tNWnNsKguyM
+  // Add penalty costs to allow skipping orders.
+  // TODO: Make only new orders optional
   const int64 kPenalty = 10000000;
   const RoutingModel::NodeIndex kFirstNodeAfterDepot(1);
   for (RoutingModel::NodeIndex order = kFirstNodeAfterDepot;
@@ -149,21 +139,20 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
 
   // Solve and Display Solution
   const Assignment *solution = routing.SolveWithParameters(parameters);
-  // 0	ROUTING_NOT_SOLVED: Problem not solved yet.
-  // 1	ROUTING_SUCCESS: Problem solved successfully.
-  // 2	ROUTING_FAIL: No solution found to the problem.
-  // 3	ROUTING_FAIL_TIMEOUT: Time limit reached before finding a solution.
-  // 4	ROUTING_INVALID: Model, model parameters, or flags are not valid.
-  std::cout << std::to_string(routing.status()) + "\n";
 
   if (solution != nullptr)
   {
-    std::cout << "SOLVED\n";
     return getReserveConstrainedRoutes(data, routing, *solution);
   }
   else
   {
-    std::cout << "solution == nullptr\n";
+    // 0	ROUTING_NOT_SOLVED: Problem not solved yet.
+    // 1	ROUTING_SUCCESS: Problem solved successfully.
+    // 2	ROUTING_FAIL: No solution found to the problem.
+    // 3	ROUTING_FAIL_TIMEOUT: Time limit reached before finding a solution.
+    // 4	ROUTING_INVALID: Model, model parameters, or flags are not valid.
+
+    LOG(INFO) << "No Solution Found! Routing status: " + std::to_string(routing.status()) + "\n";
     std::vector<std::vector<int>> empty_routes;
     return empty_routes;
   }
