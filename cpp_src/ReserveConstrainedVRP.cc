@@ -43,13 +43,13 @@ std::vector<std::vector<int>> getReserveConstrainedRoutes(const ReserveConstrain
   return routes;
 }
 
-std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> startingLocations,
+std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<std::vector<int64>> previousRoutes,
                                                           std::vector<std::vector<int64>> demands,
                                                           std::vector<std::vector<int64>> reserves,
                                                           std::vector<std::vector<int64>> durations,
                                                           int timeLimit)
 {
-  ReserveConstrainedDataModel data(reserves[0].size(), demands[0].size(), demands.size(), startingLocations, demands, reserves, durations);
+  ReserveConstrainedDataModel data(reserves[0].size(), demands[0].size(), demands.size(), previousRoutes, demands, reserves, durations);
 
   const char *kDuration = "Duration";
   const int kMaxTripDuration = 28800; // maximum trip duration per vehicle (8 hours)
@@ -95,9 +95,15 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
   }
 
   // Add penalty costs to allow skipping orders.
-  // TODO: Make only new orders optional
-  const int64 kPenalty = 10000000;
+
+  // Once a disjunction is added, all nodes become potentially optional
+  // (if no disjunction is set for a node, this is equivalent to a null penalty)
+  // https://groups.google.com/forum/#!topic/or-tools-discuss/tNWnNsKguyM
+  // Add much greater penalty for mandatory nodes, to force them to be active
+  const int64 kPenaltyMandatory = 10000000000;
+  const int64 kPenaltyOptional = 10000000;
   const RoutingModel::NodeIndex kFirstNodeAfterDepot(1);
+
   for (RoutingModel::NodeIndex order = kFirstNodeAfterDepot;
        order < routing.nodes(); ++order)
   {
@@ -105,9 +111,18 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
     {
       continue;
     }
-    std::vector<RoutingModel::NodeIndex> orders(1, order);
-    routing.AddDisjunction(orders, kPenalty);
-    std::cout << "Node " << order.value() << " made optional\n";
+    else if (order < data.minOptionalNodeIndex())
+    {
+      std::vector<RoutingModel::NodeIndex> orders(1, order);
+      routing.AddDisjunction(orders, kPenaltyMandatory);
+      std::cout << "Node " << order.value() << " disjunction with MANDATORY PENALTY\n";
+    }
+    else
+    {
+      std::vector<RoutingModel::NodeIndex> orders(1, order);
+      routing.AddDisjunction(orders, kPenaltyOptional);
+      std::cout << "Node " << order.value() << " disjunction with OPTIONAL PENALTY\n";
+    }
   }
 
   // ******* TEST LOGGING ***************************
@@ -124,13 +139,13 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
                      "\tEnd: " + std::to_string(routing.IndexToNode(routing.End(vehicle_id)).value()) + "\n";
   }
 
-  std::vector<std::string> all_dimensions;
-  all_dimensions = routing.GetAllDimensionNames();
-  std::cout << "\nDimensions:\n";
-  for (int dimension_index = 0; dimension_index < all_dimensions.size(); dimension_index++)
-  {
-    std::cout << all_dimensions[dimension_index] + "\n";
-  }
+  // std::vector<std::string> all_dimensions;
+  // all_dimensions = routing.GetAllDimensionNames();
+  // std::cout << "\nDimensions:\n";
+  // for (int dimension_index = 0; dimension_index < all_dimensions.size(); dimension_index++)
+  // {
+  //   std::cout << all_dimensions[dimension_index] + "\n";
+  // }
 
   int number_of_disjunctions = routing.GetNumberOfDisjunctions();
   std::cout << "\nNumber of disjunctions: " + std::to_string(number_of_disjunctions) + "\n";
@@ -138,7 +153,10 @@ std::vector<std::vector<int>> solveWithReserveConstraints(std::vector<int64> sta
   // ************************************************
 
   // Solve and Display Solution
-  const Assignment *solution = routing.SolveWithParameters(parameters);
+  // const Assignment *solution = routing.SolveWithParameters(parameters);
+  routing.CloseModelWithParameters(parameters);
+  const Assignment *initial_assignment = routing.ReadAssignmentFromRoutes(data.initialRoutes(), true);
+  const Assignment *solution = routing.SolveFromAssignmentWithParameters(initial_assignment, parameters);
 
   if (solution != nullptr)
   {

@@ -14,7 +14,7 @@ const {
   createCapacitiesInput,
   createVolumesInput,
   createDurationMatrix,
-  createStartingLocations,
+  createCurrentRoutes,
   createReservesInput,
   createDemandsInput
 } = require("./vrpInputSelectors");
@@ -49,8 +49,8 @@ const calculateInitialRoutes = company_id =>
         console.log(orderIDs);
         console.log("\nVehicle IDs");
         console.log(vehicleIDs);
-        console.log("\nCoordinates");
-        console.log(coordData);
+        // console.log("\nCoordinates");
+        // console.log(coordData);
         console.log("\nVehicle capacities");
         console.log(capacities);
         console.log("\nOrder volumes");
@@ -108,7 +108,7 @@ const recalculateRoutes = company_id =>
           vehicleIDs,
           orderIDs,
           coordData,
-          createStartingLocations(vehicleIDs, orderIDs),
+          createCurrentRoutes(vehicleIDs, orderIDs),
           createDemandsInput(productData, orderData),
           createReservesInput(productData, vehicleData),
           createDurationMatrix(coordData)
@@ -119,7 +119,7 @@ const recalculateRoutes = company_id =>
         vehicleIDs,
         orderIDs,
         coordData,
-        startingLocations,
+        currentRoutes,
         demands,
         reserves,
         durations
@@ -131,10 +131,10 @@ const recalculateRoutes = company_id =>
         console.log(orderIDs);
         console.log("\nVehicle IDs");
         console.log(vehicleIDs);
-        console.log("\nCoordinates");
-        console.log(coordData);
-        console.log("\nVehicle starting locations");
-        console.log(startingLocations);
+        // console.log("\nCoordinates");
+        // console.log(coordData);
+        console.log("\nVehicle Current Routes");
+        console.log(currentRoutes);
         console.log("\nVehicle reserves");
         console.log(reserves);
         console.log("\nOrder demands");
@@ -144,7 +144,7 @@ const recalculateRoutes = company_id =>
           orderIDs,
           coordData,
           VRPSolver.solveAsyncWithReserveConstraints(
-            startingLocations,
+            currentRoutes,
             demands,
             reserves,
             durations,

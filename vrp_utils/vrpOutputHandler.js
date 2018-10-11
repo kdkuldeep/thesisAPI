@@ -17,11 +17,11 @@ const clearOrderRouting = (trx, company_id) =>
 // route_index = index of order in vehicle's delivery route
 
 // TODO: update eta
-const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
+const updateOrders = (trx, orderIDs, vehicleIDs, routingOutput) =>
   Promise.all(
-    routes.map((route, vehicleIndex) => {
+    routingOutput.map((route, vehicleIndex) => {
       // Get order IDS for each vehicle route from route indexes
-      // Remove first and last index that refer to depot
+      // Remove first and last index that refer to starting-ending locations
       const routeOrders = route
         .slice(1, route.length - 1)
         .map(orderIndex => orderIDs[orderIndex - 1]);
@@ -47,13 +47,13 @@ const updateOrders = (trx, orderIDs, vehicleIDs, routes) =>
 const clearRoutes = (trx, company_id) =>
   db("vehicles")
     .where({ company_id })
-    .update({ route: null })
+    .update({ route_polyline: null })
     .transacting(trx);
 
-const updateRoutes = (trx, company_id, vehicleIDs, coords, routes) =>
+const updateRoutes = (trx, company_id, vehicleIDs, coords, routingOutput) =>
   clearRoutes(trx, company_id).then(() =>
     Promise.all(
-      routes.map((route, vehicleIndex) => {
+      routingOutput.map((route, vehicleIndex) => {
         const vehicle_id = vehicleIDs[vehicleIndex];
         const waypoints = route.map(orderIndex => coords[orderIndex]);
 
@@ -68,7 +68,7 @@ const updateRoutes = (trx, company_id, vehicleIDs, coords, routes) =>
           .then(encodedPolyline =>
             db("vehicles")
               .where({ vehicle_id })
-              .update({ route: encodedPolyline })
+              .update({ route_polyline: encodedPolyline })
               .transacting(trx)
           );
       })

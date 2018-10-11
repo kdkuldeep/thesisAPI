@@ -14,7 +14,7 @@ const clearOrderRouting = (trx, company_id) =>
 const clearRoutes = (trx, company_id) =>
   db("vehicles")
     .where({ company_id })
-    .update({ route: null })
+    .update({ route_polyline: null })
     .transacting(trx);
 
 const clearReserves = (trx, company_id) =>

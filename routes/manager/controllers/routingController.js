@@ -12,10 +12,10 @@ const getOrderDataAfterRouting = company_id =>
 
 const getVehicleRoutesAfterRouting = company_id =>
   db
-    .select("vehicle_id", "route")
+    .select("vehicle_id", "route_polyline")
     .from("vehicles")
     .where({ company_id })
-    .whereNotNull("route");
+    .whereNotNull("route_polyline");
 
 const getVehicleReserve = vehicle_id =>
   db

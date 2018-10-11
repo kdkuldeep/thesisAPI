@@ -1,5 +1,4 @@
 const db = require("../db/knex");
-
 const { matrixService } = require("../mapboxServices");
 
 // *******************************************************
@@ -34,7 +33,6 @@ const createCapacitiesInput = vehicleData =>
 // return the starting location of each vehicle:
 //    - find the order_id of the order with minimum route_index
 //    - find the index of this order_id in orderIDs array
-//    - this index + 1 is the Routing node index used in previous VRP Solution (+1 for depot)
 
 const createStartingLocations = (vehicleIDs, orderIDs) =>
   Promise.all(
@@ -44,6 +42,24 @@ const createStartingLocations = (vehicleIDs, orderIDs) =>
         .orderBy("route_index")
         .first()
         .then(({ order_id }) => orderIDs.indexOf(order_id) + 1)
+    )
+  );
+
+// Return a N x M(i) array where:
+// N = number of vehicles
+// M(i) = number or incomplete orders in the current route of vehicle {i}
+// takes as parameters the ORDERED ids of vehicles and orders used in VRPSolver
+// return the current route of each vehicle:
+//    - get the order IDs of orders served by each vehicle ORDERED BY route_index
+//    - find the index of every order_id in orderIDs array
+
+const createCurrentRoutes = (vehicleIDs, orderIDs) =>
+  Promise.all(
+    vehicleIDs.map(vehicle_id =>
+      db("orders")
+        .where({ vehicle_id, completed: false })
+        .orderBy("route_index")
+        .map(({ order_id }) => orderIDs.indexOf(order_id) + 1)
     )
   );
 
@@ -186,6 +202,7 @@ module.exports = {
   createVolumesInput,
   createDurationMatrix,
   createStartingLocations,
+  createCurrentRoutes,
   createReservesInput,
   createDemandsInput
 };

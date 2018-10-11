@@ -34,10 +34,10 @@ const fetchReserves = (req, res, next) => {
 
 const fetchRoutes = (req, res, next) => {
   const { company_id } = req.user;
-  db.select("vehicle_id", "route")
+  db.select("vehicle_id", "route_polyline")
     .from("vehicles")
     .where({ company_id })
-    .whereNotNull("route")
+    .whereNotNull("route_polyline")
     .then(data => res.json({ routes: data }))
     .catch(() => next(new ApplicationError()));
 };

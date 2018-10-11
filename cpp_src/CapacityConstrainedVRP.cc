@@ -27,29 +27,29 @@ std::vector<std::vector<int>> getCapacityConstrainedRoutes(const CapacityConstra
     StringAppendF(&plan_output, "Route: ");
 
     int64 index = routing.Start(vehicle_id);
-    if (routing.IsEnd(plan.Value(routing.NextVar(index))))
+    // if (routing.IsEnd(plan.Value(routing.NextVar(index))))
+    // {
+    //   plan_output += "Empty\n";
+    // }
+    // else
+    // {
+    while (true)
     {
-      plan_output += "Empty\n";
-    }
-    else
-    {
-      while (true)
+      vehicle_route.push_back(routing.IndexToNode(index).value());
+
+      StringAppendF(&plan_output, "%lld",
+                    routing.IndexToNode(index).value());
+      if (routing.IsEnd(index))
       {
-        vehicle_route.push_back(routing.IndexToNode(index).value());
-
-        StringAppendF(&plan_output, "%lld",
-                      routing.IndexToNode(index).value());
-        if (routing.IsEnd(index))
-        {
-          break;
-        }
-        StringAppendF(&plan_output, " -> ");
-        index = plan.Value(routing.NextVar(index));
+        break;
       }
-      routes.push_back(vehicle_route);
-
-      plan_output += "\n";
+      StringAppendF(&plan_output, " -> ");
+      index = plan.Value(routing.NextVar(index));
     }
+    routes.push_back(vehicle_route);
+
+    plan_output += "\n";
+    // }
   }
   LOG(INFO) << plan_output;
   return routes;
@@ -93,6 +93,13 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
   // start cumul variables. In other words:
   // global_span_cost = coefficient * (Max(dimension end value) - Min(dimension start value)).
   routing.GetMutableDimension(kDuration)->SetGlobalSpanCostCoefficient(100);
+
+  // Add constraint to force vehicles to serve at least one order
+  for (int vehicle_id = 0; vehicle_id < routing.vehicles(); ++vehicle_id)
+  {
+    routing.solver()->AddConstraint(
+        routing.solver()->MakeNonEquality(routing.NextVar(routing.Start(vehicle_id)), routing.End(vehicle_id)));
+  }
 
   // Add Capacity Constraints
   routing.AddDimensionWithVehicleCapacity(NewPermanentCallback(&data, &CapacityConstrainedDataModel::getOrderVolume),

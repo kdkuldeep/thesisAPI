@@ -2,14 +2,14 @@
 
 ReserveConstrainedSolverWorker::ReserveConstrainedSolverWorker(Napi::Function &callback,
                                                                Napi::Promise::Deferred deferred,
-                                                               std::vector<int64> startingLocations,
+                                                               std::vector<std::vector<int64>> previousRoutes,
                                                                std::vector<std::vector<int64>> demands,
                                                                std::vector<std::vector<int64>> reserves,
                                                                std::vector<std::vector<int64>> durations,
                                                                int timeLimit)
     : Napi::AsyncWorker(callback),
       deferred(deferred),
-      startingLocations(startingLocations),
+      previousRoutes(previousRoutes),
       demands(demands),
       reserves(reserves),
       durations(durations),
@@ -19,7 +19,7 @@ ReserveConstrainedSolverWorker::~ReserveConstrainedSolverWorker() {}
 
 void ReserveConstrainedSolverWorker::Execute()
 {
-  routes = solveWithReserveConstraints(startingLocations, demands, reserves, durations, timeLimit);
+  routes = solveWithReserveConstraints(previousRoutes, demands, reserves, durations, timeLimit);
 }
 
 void ReserveConstrainedSolverWorker::OnOK()
@@ -63,7 +63,7 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
   else if (!info[0].IsArray())
   {
     deferred.Reject(
-        Napi::TypeError::New(env, "Expected 1d array as first argument (starting locations)").Value());
+        Napi::TypeError::New(env, "Expected 2d array as first argument (previous routes)").Value());
   }
 
   else if (!info[1].IsArray())
@@ -93,13 +93,19 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
   else
   {
 
-    // Get vehicle starting locations from first argument
-    std::vector<int64> startingLocations;
-    Napi::Array startingLocationsInput = info[0].As<Napi::Array>();
-    for (uint32_t rowIndex = 0; rowIndex < startingLocationsInput.Length(); rowIndex++)
+    // Get previous vehicle routes from first argument
+    std::vector<std::vector<int64>> previousRoutes;
+    Napi::Array previousRoutesInput = info[0].As<Napi::Array>();
+    for (uint32_t rowIndex = 0; rowIndex < previousRoutesInput.Length(); rowIndex++)
     {
-      int64 locationValue = startingLocationsInput.Get(rowIndex).As<Napi::Number>().Int64Value();
-      startingLocations.push_back(locationValue);
+      std::vector<int64> previousRoutesRow;
+      Napi::Array previousRoutesInputRow = previousRoutesInput.Get(rowIndex).As<Napi::Array>();
+      for (int32_t columnIndex = 0; columnIndex < previousRoutesInputRow.Length(); columnIndex++)
+      {
+        int64 previousRoutesValue = previousRoutesInputRow.Get(columnIndex).As<Napi::Number>().Int64Value();
+        previousRoutesRow.push_back(previousRoutesValue);
+      }
+      previousRoutes.push_back(previousRoutesRow);
     }
 
     // Get product demands from second argument
@@ -154,7 +160,7 @@ Napi::Promise solveAsyncWithReserveConstraints(const Napi::CallbackInfo &info)
     Napi::Function callback = Napi::Function::New(env, EmptyCallback);
 
     // create AsyncWorker and queue for execution
-    ReserveConstrainedSolverWorker *worker = new ReserveConstrainedSolverWorker(callback, deferred, startingLocations, demands, reserves, durations, timeLimit);
+    ReserveConstrainedSolverWorker *worker = new ReserveConstrainedSolverWorker(callback, deferred, previousRoutes, demands, reserves, durations, timeLimit);
     worker->Queue();
   }
 

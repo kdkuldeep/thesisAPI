@@ -26,7 +26,7 @@ exports.up = knex =>
       .index();
     table.decimal("latitude", 10, 6);
     table.decimal("longitude", 10, 6);
-    table.text("route");
+    table.text("route_polyline");
   });
 
 exports.down = knex => knex.schema.dropTable("vehicles");
