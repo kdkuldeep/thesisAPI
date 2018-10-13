@@ -19,7 +19,10 @@ const {
   createDemandsInput
 } = require("./vrpInputSelectors");
 
-const { handleOutput } = require("./vrpOutputHandler");
+const {
+  handleInitialRoutingOutput,
+  handleRoutingRecalculationOutput
+} = require("./vrpOutputHandler");
 
 const calculateInitialRoutes = company_id =>
   Promise.all([getVehicleData(company_id), getOrderData(company_id)])
@@ -70,7 +73,7 @@ const calculateInitialRoutes = company_id =>
     )
     .then(([vehicleIDs, orderIDs, coordData, routingOutput]) => {
       console.log("\n-----------------------------------------\n");
-      return handleOutput(
+      return handleInitialRoutingOutput(
         company_id,
         vehicleIDs,
         orderIDs,
@@ -152,17 +155,17 @@ const recalculateRoutes = company_id =>
           )
         ]);
       }
-    );
-// .then(([vehicleIDs, orderIDs, coordData, routingOutput]) => {
-//   console.log("\n-----------------------------------------\n");
-//   return handleOutput(
-//     company_id,
-//     vehicleIDs,
-//     orderIDs,
-//     coordData,
-//     routingOutput
-//   );
-// });
+    )
+    .then(([vehicleIDs, orderIDs, coordData, routingOutput]) => {
+      console.log("\n-----------------------------------------\n");
+      return handleRoutingRecalculationOutput(
+        company_id,
+        vehicleIDs,
+        orderIDs,
+        coordData,
+        routingOutput
+      );
+    });
 
 const onNewOrderConditionalReroute = companyIDs =>
   db("companies")

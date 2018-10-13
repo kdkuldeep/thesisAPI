@@ -2,7 +2,7 @@ const db = require("../../../db/knex");
 const ApplicationError = require("../../../errors/ApplicationError");
 
 const { calculateInitialRoutes } = require("../../../vrp_utils/vrpSolvers");
-const { recalculateRoutes } = require("../../../vrp_utils/vrpSolvers");
+// const { recalculateRoutes } = require("../../../vrp_utils/vrpSolvers");
 
 const getOrderDataAfterRouting = company_id =>
   db
@@ -49,7 +49,7 @@ const calculate = (req, res, next) => {
       res.json({ orders, routes, reserves })
     )
     // *********** TEST **************
-    .then(() => recalculateRoutes(company_id))
+    // .then(() => recalculateRoutes(company_id))
     .catch(err => {
       console.log(err);
       return next(new ApplicationError(err.message));

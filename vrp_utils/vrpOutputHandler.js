@@ -90,13 +90,14 @@ const clearReserves = (trx, company_id) =>
         .transacting(trx)
     );
 
-const initReserves = (trx, company_id, orderIDs, vehicleIDs, routes) =>
+const initReserves = (trx, company_id, orderIDs, vehicleIDs, routingOutput) =>
   clearReserves(trx, company_id).then(() =>
     Promise.all(
-      routes.map((route, vehicleIndex) => {
+      routingOutput.map((route, vehicleIndex) => {
         const vehicle_id = vehicleIDs[vehicleIndex];
+
         const routeOrders = route
-          .slice(1, route.length - 1)
+          .slice(1, route.length - 1) // remove depot from start and end
           .map(orderIndex => orderIDs[orderIndex - 1]);
 
         return db
@@ -127,17 +128,51 @@ const initReserves = (trx, company_id, orderIDs, vehicleIDs, routes) =>
     )
   );
 
+const updateMinReserves = (trx, orderIDs, vehicleIDs, routingOutput) =>
+  Promise.all(
+    routingOutput.map((route, vehicleIndex) => {
+      const vehicle_id = vehicleIDs[vehicleIndex];
+
+      const routeOrders = route
+        .slice(0, route.length - 1) // remove depot from end
+        .map(orderIndex => orderIDs[orderIndex - 1]);
+      console.log(routeOrders);
+      return db
+        .select("product_id", "quantity")
+        .from("order_product_rel")
+        .whereIn("order_id", routeOrders)
+        .then(products => groupBy(products, "product_id"))
+        .then(productsById =>
+          Promise.all(
+            Object.keys(productsById).map(product_id => {
+              const totalQuantity = productsById[product_id]
+                .map(product => product.quantity)
+                .reduce((a, b) => a + b);
+
+              return db("reserves")
+                .where({ vehicle_id, product_id })
+                .update({
+                  min_quantity: totalQuantity
+                })
+                .transacting(trx);
+            })
+          )
+        );
+    })
+  );
+
 // *******************************************************
-// *              VRP Output Handler                     *
+// *              VRP Output Handlers                     *
 // *******************************************************
 
-// This function's main  parameter is routingOutput that is returned by the VRPSolver addon
+// Main  parameter is routingOutput that is returned by the VRPSolver addon
 // routingOutput is a N-dimensional array where:
 // N = number of vehicles used to solve VRP
 // and routingOuput[i] is an M-dimensional array where:
 // M = number of locations visited by vehicle {i} + 2 (for start and end locations)
 
-const handleOutput = (
+// Initialy routingOuput[i][0] and routingOuput[i][M] = 0 for depot
+const handleInitialRoutingOutput = (
   company_id,
   vehicleIDs,
   orderIDs,
@@ -154,4 +189,27 @@ const handleOutput = (
       .catch(trx.rollback)
   );
 
-module.exports = { handleOutput };
+// In subsequent recalculations:
+// routingOuput[i][0] = current destination for vehicle{i}
+// routingOuput[i][M] = 0 for depot
+const handleRoutingRecalculationOutput = (
+  company_id,
+  vehicleIDs,
+  orderIDs,
+  coordData,
+  routingOutput
+) =>
+  db.transaction(trx =>
+    Promise.all([
+      updateOrders(trx, orderIDs, vehicleIDs, routingOutput),
+      updateRoutes(trx, company_id, vehicleIDs, coordData, routingOutput),
+      updateMinReserves(trx, orderIDs, vehicleIDs, routingOutput)
+    ])
+      .then(trx.commit)
+      .catch(trx.rollback)
+  );
+
+module.exports = {
+  handleInitialRoutingOutput,
+  handleRoutingRecalculationOutput
+};

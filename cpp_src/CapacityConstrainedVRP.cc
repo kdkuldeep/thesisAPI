@@ -76,7 +76,7 @@ std::vector<std::vector<int>> solveWithCapacityConstraints(std::vector<int64> ca
   parameters.set_first_solution_strategy(
       FirstSolutionStrategy::PATH_CHEAPEST_ARC);
   parameters.set_local_search_metaheuristic(LocalSearchMetaheuristic::GUIDED_LOCAL_SEARCH);
-  parameters.set_time_limit_ms(timeLimit); // metaheuristic time limit (milliseconds) (sec*1000)
+  parameters.set_time_limit_ms(timeLimit); // search time limit (milliseconds) (sec*1000)
 
   // Set the cost function.
   routing.SetArcCostEvaluatorOfAllVehicles(NewPermanentCallback(&data, &DataModel::getArcCost));

@@ -5,7 +5,7 @@ const ApplicationError = require("../../../errors/ApplicationError");
 const fetchState = (req, res, next) => {
   const { company_id } = req.user;
 
-  db.select("shipping_state")
+  db.select("shipping_initialized")
     .from("companies")
     .where({ company_id })
     .first()
