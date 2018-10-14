@@ -23,7 +23,5 @@ exports.up = knex =>
       .notNullable();
   });
 
-// exports.down = knex => knex.schema.dropTable("users");
-
 exports.down = knex =>
   knex.schema.raw("DROP TABLE users; DROP TYPE IF EXISTS user_roles; ");

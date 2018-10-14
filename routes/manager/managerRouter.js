@@ -6,6 +6,7 @@ const drivers = require("./controllers/driverController");
 const orders = require("./controllers/orderController");
 const vehicleRoutes = require("./controllers/routingController");
 const shipping = require("./controllers/shippingController");
+const subscriptions = require("./controllers/subscriptionController");
 
 const roles = require("../../roles");
 
@@ -109,5 +110,9 @@ router.put(
   validateRequestBody(shippingStateSchema),
   shipping.setState
 );
+
+router.get("/orders/subscribe", subscriptions.subscribeToOrders);
+router.get("/vehicles/routes/subscribe", subscriptions.subscribeToRoutes);
+router.get("/vehicles/reserves/subscribe", subscriptions.subscribeToReserves);
 
 module.exports = router;

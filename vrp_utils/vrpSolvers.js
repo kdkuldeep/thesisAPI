@@ -4,6 +4,8 @@ const db = require("../db/knex");
 
 const METAHEURISTIC_TIME_LIMIT = 10000; // millisecond
 
+const { routeEventEmitter, reserveEventEmitter } = require("../EventEmitters");
+
 const {
   getVehicleData,
   getVehicleIds,
@@ -165,6 +167,10 @@ const recalculateRoutes = company_id =>
         coordData,
         routingOutput
       );
+    })
+    .then(() => {
+      routeEventEmitter.emit(`newRoutes_${company_id}`);
+      reserveEventEmitter.emit(`newReserves_${company_id}`);
     });
 
 const onNewOrderConditionalReroute = companyIDs =>

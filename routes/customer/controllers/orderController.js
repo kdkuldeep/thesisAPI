@@ -1,5 +1,7 @@
 const db = require("../../../db/knex");
 
+const { orderEventEmitter } = require("../../../EventEmitters");
+
 const ApplicationError = require("../../../errors/ApplicationError");
 
 const fetchOrders = (req, res, next) => {
@@ -149,9 +151,14 @@ const addOrder = (req, res, next) => {
                 "companies.company_id"
               )
               .then(orders => {
+                // emit newOrder event to send new orders to listening managers
+                // +
                 // save the company IDs referencing to the new orders in res.locals
                 // to be accessible in next middleware
-                res.locals.companies = orders.map(order => order.company_id);
+                res.locals.companies = orders.map(order => {
+                  orderEventEmitter.emit(`newOrder_${order.company_id}`);
+                  return order.company_id;
+                });
 
                 // continue with constructing response body
                 const promises = orders.map(order => {
