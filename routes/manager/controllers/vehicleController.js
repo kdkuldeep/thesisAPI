@@ -1,5 +1,7 @@
 const db = require("../../../db/knex");
 
+const { vehicleEventEmitter } = require("../../../EventEmitters");
+
 const ApplicationError = require("../../../errors/ApplicationError");
 
 const getVehicleReserve = vehicle_id =>
@@ -173,9 +175,10 @@ const editVehicle = (req, res, next) => {
       db("vehicles")
         .where({ vehicle_id })
         .update({ licence_plate, capacity })
-        .then(() =>
-          res.json({ vehicle_id, licence_plate, capacity, driver_id })
-        )
+        .then(() => {
+          vehicleEventEmitter.emit(`newVehicle_${driver_id}`);
+          return res.json({ vehicle_id, licence_plate, capacity, driver_id });
+        })
         .catch(err => {
           console.log(err);
           return next(
@@ -197,7 +200,7 @@ const deleteVehicle = (req, res, next) => {
 
   const { company_id } = req.user;
 
-  db.select("company_id")
+  db.select("company_id", "driver_id")
     .from("vehicles")
     .where({ vehicle_id })
     .first()
@@ -207,7 +210,10 @@ const deleteVehicle = (req, res, next) => {
       db("vehicles")
         .where({ vehicle_id })
         .del()
-        .then(() => res.json({ vehicle_id }))
+        .then(() => {
+          vehicleEventEmitter.emit(`newVehicle_${vehicleData.driver_id}`);
+          return res.json({ vehicle_id });
+        })
         .catch(err => {
           console.log(err);
           return next(new ApplicationError());
@@ -235,9 +241,10 @@ const assignDriver = (req, res, next) => {
       db("vehicles")
         .where({ vehicle_id })
         .update({ driver_id })
-        .then(() =>
-          res.json({ vehicle_id, licence_plate, capacity, driver_id })
-        )
+        .then(() => {
+          vehicleEventEmitter.emit(`newVehicle_${driver_id}`);
+          return res.json({ vehicle_id, licence_plate, capacity, driver_id });
+        })
         .catch(err => {
           console.log(err);
           return next(new ApplicationError());

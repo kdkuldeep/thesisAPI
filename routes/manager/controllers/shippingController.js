@@ -1,5 +1,7 @@
 const db = require("../../../db/knex");
 
+const { shippingStateEventEmitter } = require("../../../EventEmitters");
+
 const ApplicationError = require("../../../errors/ApplicationError");
 
 const fetchState = (req, res, next) => {
@@ -20,7 +22,10 @@ const setState = (req, res, next) => {
   db("companies")
     .where({ company_id })
     .update({ shipping_initialized: shippingState })
-    .then(() => res.json({}))
+    .then(() => {
+      shippingStateEventEmitter.emit(`newShippingState_${company_id}`);
+      return res.json({});
+    })
     .catch(err => next(new ApplicationError(err.message)));
 };
 
