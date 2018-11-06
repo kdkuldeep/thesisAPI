@@ -1,6 +1,6 @@
 const db = require("../../../db/knex");
 
-const { orderEventEmitter } = require("../../../EventEmitters");
+const { managerEventEmitter } = require("../../../EventEmitters");
 
 const ApplicationError = require("../../../errors/ApplicationError");
 
@@ -156,7 +156,7 @@ const addOrder = (req, res, next) => {
                 // save the company IDs referencing to the new orders in res.locals
                 // to be accessible in next middleware
                 res.locals.companies = orders.map(order => {
-                  orderEventEmitter.emit(`newOrder_${order.company_id}`);
+                  managerEventEmitter.emit(`newOrder_${order.company_id}`);
                   return order.company_id;
                 });
 

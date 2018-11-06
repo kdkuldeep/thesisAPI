@@ -22,6 +22,7 @@ exports.up = knex =>
       .integer("min_quantity")
       .unsigned()
       .notNullable();
+    table.primary(["product_id", "vehicle_id"]);
   });
 
 exports.down = knex => knex.schema.dropTable("reserves");

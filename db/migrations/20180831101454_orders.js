@@ -22,10 +22,16 @@ exports.up = knex =>
       .index();
     table.float("value", 8, 2);
     table.integer("total_volume").unsigned();
-    table.timestamp("created_at").defaultTo(knex.fn.now());
+    table
+      .timestamp("created_at")
+      .notNullable()
+      .defaultTo(knex.fn.now());
     table.timestamp("eta");
     table.integer("route_index").unsigned();
-    table.boolean("completed").defaultTo(false);
+    table
+      .boolean("completed")
+      .notNullable()
+      .defaultTo(false);
   });
 
 exports.down = knex => knex.schema.dropTable("orders");

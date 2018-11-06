@@ -18,6 +18,7 @@ exports.up = knex =>
       .integer("quantity")
       .unsigned()
       .notNullable();
+    table.primary(["product_id", "order_id"]);
   });
 
 exports.down = knex => knex.schema.dropTable("order_product_rel");

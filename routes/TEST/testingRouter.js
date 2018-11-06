@@ -5,6 +5,8 @@ const authorizeUser = require("../../middleware/userAuthorization");
 const db = require("../../db/knex");
 const ApplicationError = require("../../errors/ApplicationError");
 
+const { driverEventEmitter } = require("../../EventEmitters");
+
 const clearOrderRouting = (trx, company_id) =>
   db("orders")
     .where({ company_id })
@@ -46,7 +48,13 @@ const reset = (req, res, next) => {
       .then(trx.commit)
       .catch(trx.rollback)
   )
-    .then(() => res.json({}))
+    .then(() => {
+      driverEventEmitter.emit(`newOrders_${company_id}`);
+      driverEventEmitter.emit(`newRoutes_${company_id}`);
+      driverEventEmitter.emit(`newReserves_${company_id}`);
+      driverEventEmitter.emit(`newShippingState_${company_id}`);
+      return res.json({});
+    })
     .catch(err => {
       console.log(err);
       return next(new ApplicationError("Cannot clear routing data"));

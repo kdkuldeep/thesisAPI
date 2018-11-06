@@ -1,6 +1,6 @@
 const db = require("../../../db/knex");
 
-const { vehicleEventEmitter } = require("../../../EventEmitters");
+const { driverEventEmitter } = require("../../../EventEmitters");
 
 const ApplicationError = require("../../../errors/ApplicationError");
 
@@ -126,7 +126,10 @@ const editReserve = (req, res, next) => {
       );
     })
     .then(() => getVehicleReserve(vehicle_id))
-    .then(reserve => res.json({ vehicle_id, reserve }))
+    .then(reserve => {
+      driverEventEmitter.emit(`newReserves_${company_id}`);
+      return res.json({ vehicle_id, reserve });
+    })
     .catch(err => {
       console.log(err);
       next(new ApplicationError());
@@ -176,7 +179,7 @@ const editVehicle = (req, res, next) => {
         .where({ vehicle_id })
         .update({ licence_plate, capacity })
         .then(() => {
-          vehicleEventEmitter.emit(`newVehicle_${driver_id}`);
+          driverEventEmitter.emit(`newVehicle_${driver_id}`);
           return res.json({ vehicle_id, licence_plate, capacity, driver_id });
         })
         .catch(err => {
@@ -211,7 +214,7 @@ const deleteVehicle = (req, res, next) => {
         .where({ vehicle_id })
         .del()
         .then(() => {
-          vehicleEventEmitter.emit(`newVehicle_${vehicleData.driver_id}`);
+          driverEventEmitter.emit(`newVehicle_${vehicleData.driver_id}`);
           return res.json({ vehicle_id });
         })
         .catch(err => {
@@ -242,7 +245,7 @@ const assignDriver = (req, res, next) => {
         .where({ vehicle_id })
         .update({ driver_id })
         .then(() => {
-          vehicleEventEmitter.emit(`newVehicle_${driver_id}`);
+          driverEventEmitter.emit(`newVehicle_${driver_id}`);
           return res.json({ vehicle_id, licence_plate, capacity, driver_id });
         })
         .catch(err => {

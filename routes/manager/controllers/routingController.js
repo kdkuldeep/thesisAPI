@@ -1,6 +1,8 @@
 const db = require("../../../db/knex");
 const ApplicationError = require("../../../errors/ApplicationError");
 
+const { driverEventEmitter } = require("../../../EventEmitters");
+
 const { calculateInitialRoutes } = require("../../../vrp_utils/vrpSolvers");
 // const { recalculateRoutes } = require("../../../vrp_utils/vrpSolvers");
 
@@ -48,6 +50,11 @@ const calculate = (req, res, next) => {
     .then(([orders, routes, reserves]) =>
       res.json({ orders, routes, reserves })
     )
+    .then(() => {
+      driverEventEmitter.emit(`newOrders_${company_id}`);
+      driverEventEmitter.emit(`newRoutes_${company_id}`);
+      driverEventEmitter.emit(`newReserves_${company_id}`);
+    })
     // *********** TEST **************
     // .then(() => recalculateRoutes(company_id))
     .catch(err => {
