@@ -181,15 +181,214 @@ const createCoordData = (company_id, orderData) =>
     ([depotCoords, customerCoords]) => [depotCoords, ...customerCoords]
   );
 
-// Return DURATION MATRIX input as a N x M array where:
-// N = number of orders + 1
-// M = number of orders + 1
-// diagonal filled with 0 for same location duration
-const createDurationMatrix = coordData =>
+// Functions for multiple Mapbox Matrix API calls
+// when number of points > 25
+const numsInRange = (start, end) =>
+  [...Array(1 + end - start).keys()].map(key => key + start);
+
+const isOuter = (numberOfLocations, i, j) =>
+  i * 24 + 24 > numberOfLocations || j * 24 + 24 > numberOfLocations;
+
+const handleDiagonalPartition = (coordData, i, j) => {
+  const allPoints = isOuter(coordData.length, i, j)
+    ? coordData.slice(i * 24, coordData.length)
+    : coordData.slice(i * 24, i * 24 + 24);
+
+  return getDurationMatrix({ points: allPoints });
+};
+
+const handleLowerTriaglePartition = (coordData, i, j) => {
+  const allSourcePoints = isOuter(coordData.length, i, j)
+    ? coordData.slice(i * 24, coordData.length)
+    : coordData.slice(i * 24, i * 24 + 24);
+  const allDestinationPoints = coordData.slice(j * 24, j * 24 + 24);
+
+  const firstDestPts = allDestinationPoints.slice(0, 12);
+  const secondDestPts = allDestinationPoints.slice(12, 24);
+
+  if (allSourcePoints.length <= 12) {
+    return Promise.all([
+      getDurationMatrix({
+        points: allSourcePoints.concat(firstDestPts),
+        sources: numsInRange(0, allSourcePoints.length - 1),
+        destinations: numsInRange(
+          allSourcePoints.length,
+          allSourcePoints.length + firstDestPts.length - 1
+        )
+      }),
+      getDurationMatrix({
+        points: allSourcePoints.concat(secondDestPts),
+        sources: numsInRange(0, allSourcePoints.length - 1),
+        destinations: numsInRange(
+          allSourcePoints.length,
+          allSourcePoints.length + secondDestPts.length - 1
+        )
+      })
+    ]).then(([left, right]) => mergeHorizontally(left, right));
+  }
+
+  const firstSrcPts = allSourcePoints.slice(0, 12);
+  const secondSrcPts = allSourcePoints.slice(12, allSourcePoints.length);
+  return handlePartitionWithPoints(
+    firstSrcPts,
+    secondSrcPts,
+    firstDestPts,
+    secondDestPts
+  );
+};
+
+const handleUpperTriaglePartition = (coordData, i, j) => {
+  const allSourcePoints = coordData.slice(i * 24, i * 24 + 24);
+  const allDestinationPoints = isOuter(coordData.length, i, j)
+    ? coordData.slice(j * 24, coordData.length)
+    : coordData.slice(j * 24, j * 24 + 24);
+
+  const firstSrcPts = allSourcePoints.slice(0, 12);
+  const secondSrcPts = allSourcePoints.slice(12, 24);
+
+  if (allDestinationPoints.length <= 12) {
+    return Promise.all([
+      Promise.all([
+        getDurationMatrix({
+          points: firstSrcPts.concat(allDestinationPoints),
+          sources: numsInRange(0, firstSrcPts.length - 1),
+          destinations: numsInRange(
+            firstSrcPts.length,
+            firstSrcPts.length + allDestinationPoints.length - 1
+          )
+        })
+      ]).then(([upper]) => upper),
+      Promise.all([
+        getDurationMatrix({
+          points: secondSrcPts.concat(allDestinationPoints),
+          sources: numsInRange(0, secondSrcPts.length - 1),
+          destinations: numsInRange(
+            secondSrcPts.length,
+            secondSrcPts.length + allDestinationPoints.length - 1
+          )
+        })
+      ]).then(([lower]) => lower)
+    ]).then(([upper, lower]) => mergeVertically(upper, lower));
+  }
+  const firstDestPts = allDestinationPoints.slice(0, 12);
+  const secondDestPts = allDestinationPoints.slice(
+    12,
+    allDestinationPoints.length
+  );
+  return handlePartitionWithPoints(
+    firstSrcPts,
+    secondSrcPts,
+    firstDestPts,
+    secondDestPts
+  );
+};
+
+const handlePartitionWithPoints = (
+  firstSrcPts,
+  secondSrcPts,
+  firstDestPts,
+  secondDestPts
+) =>
+  Promise.all([
+    Promise.all([
+      getDurationMatrix({
+        points: firstSrcPts.concat(firstDestPts),
+        sources: numsInRange(0, firstSrcPts.length - 1),
+        destinations: numsInRange(
+          firstSrcPts.length,
+          firstSrcPts.length + firstDestPts.length - 1
+        )
+      }),
+      getDurationMatrix({
+        points: firstSrcPts.concat(secondDestPts),
+        sources: numsInRange(0, firstSrcPts.length - 1),
+        destinations: numsInRange(
+          firstSrcPts.length,
+          firstSrcPts.length + secondDestPts.length - 1
+        )
+      })
+    ]).then(([left, right]) => mergeHorizontally(left, right)),
+    Promise.all([
+      getDurationMatrix({
+        points: secondSrcPts.concat(firstDestPts),
+        sources: numsInRange(0, secondSrcPts.length - 1),
+        destinations: numsInRange(
+          secondSrcPts.length,
+          secondSrcPts.length + firstDestPts.length - 1
+        )
+      }),
+      getDurationMatrix({
+        points: secondSrcPts.concat(secondDestPts),
+        sources: numsInRange(0, secondSrcPts.length - 1),
+        destinations: numsInRange(
+          secondSrcPts.length,
+          secondSrcPts.length + secondDestPts.length - 1
+        )
+      })
+    ]).then(([left, right]) => mergeHorizontally(left, right))
+  ]).then(([upper, lower]) => mergeVertically(upper, lower));
+
+const mergeHorizontally = (left, right) => {
+  if (left.length !== right.length) console.log("ERROR MERGE HORIZONTALLY");
+  const numRows = left.length;
+  const merged = [];
+
+  for (let row = 0; row < numRows; row += 1)
+    merged.push(left[row].concat(right[row]));
+  return merged;
+};
+
+const mergeVertically = (upper, lower) => {
+  if (upper[0].length !== lower[0].length)
+    console.log("ERROR MERGE VERTICALLY");
+
+  return upper.concat(lower);
+};
+
+const getDurationMatrix = config =>
   matrixService
-    .getMatrix({ points: coordData, profile: "driving" })
+    .getMatrix({ ...config, profile: "driving" })
     .send()
     .then(response => response.body.durations);
+
+// Return DURATION MATRIX input as a N x Ν array where:
+// N = number of orders + 1
+// diagonal filled with 0 for same location duration
+const createDurationMatrix = coordData => {
+  const numberOfLocations = coordData.length;
+
+  if (numberOfLocations <= 25) return getDurationMatrix({ points: coordData });
+
+  const numOfPartitions = Math.ceil(numberOfLocations / 12);
+  const partitionedMatrixDimension = Math.ceil(numOfPartitions / 2);
+
+  const promiseMatrix = [];
+  let row = [];
+  for (let i = 0; i < partitionedMatrixDimension; i += 1) {
+    row = [];
+    for (let j = 0; j < partitionedMatrixDimension; j += 1) {
+      if (i === j) row.push(handleDiagonalPartition(coordData, i, j));
+      else if (i > j) row.push(handleLowerTriaglePartition(coordData, i, j));
+      else row.push(handleUpperTriaglePartition(coordData, i, j));
+    }
+    promiseMatrix.push(row);
+  }
+
+  return Promise.all(promiseMatrix.map(row => Promise.all(row))).then(
+    partitionedMatrix =>
+      partitionedMatrix.reduce((upper, lower) =>
+        mergeVertically(
+          upper.reduce((left, right) => mergeHorizontally(left, right)),
+          lower.reduce((left, right) => mergeHorizontally(left, right))
+        )
+      )
+  );
+};
+// const createDurationMatrix = coordData =>
+//   matrixService
+//     .getMatrix({ points: coordData, profile: "driving" })
+//     .send()
+//     .then(response => response.body.durations);
 
 module.exports = {
   getVehicleData,

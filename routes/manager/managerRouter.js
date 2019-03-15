@@ -52,7 +52,7 @@ router.get("/vehicles/reserves", vehicles.fetchReserves);
 router.get("/vehicles/routes", vehicles.fetchRoutes);
 
 router.put(
-  "/reserves/:id",
+  "/vehicles/reserves/:id",
   validateRequestBody(reserveSchema),
   vehicles.editReserve
 );
